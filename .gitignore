@@ -33,6 +33,14 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# AIMES specific files to exclude
+CLAUDE.md
+prevCode1.txt
+prevCode2.txt
+prevCode3.txt
+prevCode4.txt
+description.txt
+
 # vercel
 .vercel
 
