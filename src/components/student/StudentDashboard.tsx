@@ -1,6 +1,6 @@
 // Student dashboard with quick access to features
 import React, { useState } from 'react';
-import { MessageCircle, BookOpen, Brain, Settings, LogOut, Sparkles, Menu, X } from 'lucide-react';
+import { MessageCircle, BookOpen, Brain, Settings, LogOut, Sparkles, Menu, X, Lock, Globe, Users } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 // Placeholder components - we'll build these
@@ -80,20 +80,23 @@ const StudentDashboard: React.FC = () => {
       {/* Welcome Message */}
       <div className="bg-gradient-to-r from-teal-600 to-blue-600 rounded-2xl p-8 text-white">
         <h1 className="text-3xl font-bold mb-2">
-          Welcome back, {user?.profile.firstName}! 👋
+          Welcome back, {user?.profile.firstName}!
         </h1>
         <p className="text-teal-100 mb-4">
           Your mental health companion is here to support you with culturally-aware guidance.
         </p>
         <div className="flex flex-wrap gap-4">
-          <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm">
-            🔒 Anonymous & Secure
+          <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm flex items-center space-x-1">
+            <Lock size={14} />
+            <span>Anonymous & Secure</span>
           </span>
-          <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm">
-            🌍 Culturally Sensitive
+          <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm flex items-center space-x-1">
+            <Globe size={14} />
+            <span>Culturally Sensitive</span>
           </span>
-          <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm">
-            🤝 AI + Human Support
+          <span className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm flex items-center space-x-1">
+            <Users size={14} />
+            <span>AI + Human Support</span>
           </span>
         </div>
       </div>

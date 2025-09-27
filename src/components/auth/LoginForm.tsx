@@ -192,11 +192,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
         <div className="mt-6 text-center">
           <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
-            <span>🔒 Secure</span>
+            <span>Secure</span>
             <span>•</span>
-            <span>🤐 Anonymous</span>
+            <span>Anonymous</span>
             <span>•</span>
-            <span>🛡️ Private</span>
+            <span>Private</span>
           </div>
         </div>
       </div>

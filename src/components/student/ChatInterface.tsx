@@ -56,7 +56,7 @@ const ChatInterface: React.FC = () => {
     if (messages.length === 0) {
       const welcomeMessage: ChatMessage = {
         id: `welcome-${Date.now()}`,
-        content: `👋 Welcome to AIMES! I'm here to provide culturally-sensitive mental health support.
+        content: `Welcome to AIMES! I'm here to provide culturally-sensitive mental health support.
 
 You can choose how you'd like to receive support:
 • **AI Companion**: Immediate responses with cultural awareness
@@ -109,7 +109,7 @@ What's on your mind today?`,
       // Add error message
       const errorMessage: ChatMessage = {
         id: `error-${Date.now()}`,
-        content: '⚠️ Sorry, there was an error processing your message. Please try again.',
+        content: 'Sorry, there was an error processing your message. Please try again.',
         sender: 'assistant',
         timestamp: new Date(),
         responseType: 'ai'
@@ -211,7 +211,7 @@ Would you like me to help you find local mental health resources, or would you p
       // Add confirmation message
       const confirmationMessage: ChatMessage = {
         id: `confirmation-${Date.now()}`,
-        content: `✅ **Your message has been sent to our counselors!**
+        content: `**Your message has been sent to our counselors!**
 
 **What happens next:**
 • A certified counselor will review your message

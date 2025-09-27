@@ -376,7 +376,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
                 </div>
                 
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  Welcome to AIMES! 🎉
+                  Welcome to AIMES!
                 </h2>
                 
                 {registrationResult.needsEmailVerification ? (
@@ -386,7 +386,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
                     </p>
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                       <p className="text-yellow-800 text-sm">
-                        📧 Please check your email and click the verification link to activate your account.
+                        Please check your email and click the verification link to activate your account.
                         You won't be able to access AIMES until you verify your email.
                       </p>
                     </div>

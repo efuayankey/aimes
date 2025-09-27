@@ -87,11 +87,11 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({ onAuthSuccess }) =
         {/* Footer */}
         <div className="text-center py-6 px-4">
           <div className="flex items-center justify-center space-x-4 text-white/80 text-sm font-medium">
-            <span>🔒 Secure</span>
+            <span>Secure</span>
             <span>•</span>
-            <span>🤐 Anonymous</span>
+            <span>Anonymous</span>
             <span>•</span>
-            <span>🛡️ Confidential</span>
+            <span>Confidential</span>
           </div>
           <p className="text-white/60 text-xs mt-2">
             Your mental health journey, supported by AI and human counselors
