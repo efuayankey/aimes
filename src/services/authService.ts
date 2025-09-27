@@ -24,52 +24,31 @@ export class AuthService {
       // Send email verification
       await sendEmailVerification(firebaseUser);
 
-      // Create user profile in Firestore
-      const userData: User = {
+      // Create simple user profile for testing
+      const userData = {
         uid: firebaseUser.uid,
-        email: firebaseUser.email!,
-        userType,
-        profile: {
-          firstName: profileData.firstName || '',
-          lastName: profileData.lastName || '',
-          createdAt: new Date(),
-          lastActive: new Date()
-        },
-        isEmailVerified: firebaseUser.emailVerified,
-        isActive: true,
-        ...(userType === 'student' && {
-          studentProfile: {
-            preferences: {
-              allowJournalSharing: false,
-              notificationsEnabled: true,
-              preferredResponseTime: 'within-hour' as const
-            }
-          }
-        }),
-        ...(userType === 'counselor' && {
-          counselorProfile: {
-            credentials: '',
-            specializations: [],
-            verified: false,
-            stats: {
-              totalResponses: 0,
-              averageResponseTime: 0,
-              averageRating: 0,
-              completedFeedbackSessions: 0
-            },
-            availability: {
-              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-              hoursPerWeek: 0,
-              preferredHours: []
-            }
-          }
-        })
+        email: firebaseUser.email,
+        userType: userType,
+        firstName: profileData.firstName || '',
+        lastName: profileData.lastName || '',
+        createdAt: new Date(),
+        isActive: true
       };
 
-      await setDoc(doc(db, 'users', firebaseUser.uid), userData);
+      console.log('Attempting to create user document:', userData);
+      try {
+        await setDoc(doc(db, 'users', firebaseUser.uid), userData);
+        console.log('User document created successfully');
+      } catch (firestoreError) {
+        console.error('Firestore setDoc failed:', firestoreError);
+        throw firestoreError;
+      }
 
-      return { user: userData, needsEmailVerification: true };
+      return { user: userData as any, needsEmailVerification: true };
     } catch (error: any) {
+      console.error('Signup error details:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
       throw new Error(this.getErrorMessage(error.code));
     }
   }
@@ -97,6 +76,7 @@ export class AuthService {
 
       return userData;
     } catch (error: any) {
+      console.error('Sign in error details:', error);
       throw new Error(this.getErrorMessage(error.code));
     }
   }

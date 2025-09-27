@@ -15,6 +15,11 @@ const StudentDashboard: React.FC = () => {
   const [currentView, setCurrentView] = useState<StudentView>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Safety check - don't render if no user
+  if (!user) {
+    return <div>Loading...</div>;
+  }
+
   const handleSignOut = async () => {
     await signOut();
   };
@@ -80,7 +85,7 @@ const StudentDashboard: React.FC = () => {
       {/* Welcome Message */}
       <div className="bg-gradient-to-r from-teal-600 to-blue-600 rounded-2xl p-8 text-white">
         <h1 className="text-3xl font-bold mb-2">
-          Welcome back, {user?.profile.firstName}!
+          Welcome back, {user?.firstName || user?.profile?.firstName}!
         </h1>
         <p className="text-teal-100 mb-4">
           Your mental health companion is here to support you with culturally-aware guidance.
@@ -270,12 +275,12 @@ const StudentDashboard: React.FC = () => {
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
               <span className="text-white font-medium text-sm">
-                {user?.profile.firstName?.charAt(0) || 'U'}
+                {(user?.firstName || user?.profile?.firstName)?.charAt(0) || 'U'}
               </span>
             </div>
             <div>
               <p className="font-medium text-gray-900">
-                {user?.profile.firstName} {user?.profile.lastName}
+                {user?.firstName || user?.profile?.firstName} {user?.lastName || user?.profile?.lastName}
               </p>
               <p className="text-sm text-gray-500">Student</p>
             </div>

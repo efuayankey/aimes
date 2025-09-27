@@ -227,6 +227,28 @@ export class MessageService {
     }
   }
 
+  // Get unclaimed messages for counselor queue (oldest first)
+  static async getUnclaimedMessages(): Promise<Message[]> {
+    try {
+      const q = query(
+        collection(db, 'messages'),
+        where('responseType', '==', 'human'),
+        where('status', '==', 'pending'),
+        orderBy('timestamp', 'asc') // Oldest first
+      );
+
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().timestamp?.toDate(),
+        updatedAt: doc.data().updatedAt?.toDate()
+      } as Message));
+    } catch (error: any) {
+      throw new Error('Failed to fetch unclaimed messages: ' + error.message);
+    }
+  }
+
   // Real-time listener for pending messages
   static subscribeToPendingMessages(callback: (messages: Message[]) => void) {
     const q = query(

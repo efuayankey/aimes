@@ -111,7 +111,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const result = await AuthService.signUp(email, password, userType, profileData);
       
-      // The auth state listener will handle setting the user state
+      // Immediately set the user state after successful signup
+      setUser(result.user);
+      
       return { needsEmailVerification: result.needsEmailVerification };
     } catch (error: any) {
       setError(error.message);
