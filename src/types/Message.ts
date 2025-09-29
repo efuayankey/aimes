@@ -43,6 +43,7 @@ export interface Response {
   responderName?: string; // for human counselors
   content: string;
   timestamp: Date;
+  readByStudent?: boolean; // For notification tracking
   
   // Quality metrics and feedback
   feedback?: ResponseFeedback;
@@ -118,4 +119,56 @@ export interface MessageSubmission {
   culturalContext: CulturalBackground;
   studentId: string;
   estimatedTokens?: number;
+  conversationId?: string; // For continuing existing conversations
+}
+
+// New types for continuous conversations
+export interface Conversation {
+  id: string;
+  studentId: string;
+  counselorId?: string; // Assigned counselor for human conversations
+  type: 'ai' | 'human';
+  title: string; // Auto-generated or user-set
+  status: 'active' | 'closed' | 'archived';
+  culturalContext: CulturalBackground;
+  
+  // Metadata
+  createdAt: Date;
+  updatedAt: Date;
+  lastMessageAt: Date;
+  messageCount: number;
+  
+  // Conversation settings
+  isAnonymous: boolean;
+  priority: MessagePriority;
+  tags: string[];
+}
+
+export interface ConversationMessage {
+  id: string;
+  conversationId: string;
+  senderId: string; // student or counselor ID
+  senderType: 'student' | 'counselor' | 'ai';
+  content: string;
+  timestamp: Date;
+  
+  // Message metadata
+  readBy: string[]; // Array of user IDs who have read this message
+  editedAt?: Date;
+  replyTo?: string; // Message ID this is replying to
+  
+  // AI metadata (if from AI)
+  aiModel?: string;
+  promptTokens?: number;
+  completionTokens?: number;
+}
+
+export interface ConversationParticipant {
+  conversationId: string;
+  userId: string;
+  userType: 'student' | 'counselor';
+  joinedAt: Date;
+  lastReadAt: Date;
+  isTyping: boolean;
+  role: 'participant' | 'observer'; // For group conversations later
 }

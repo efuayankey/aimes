@@ -160,7 +160,8 @@ export class MessageService {
         responderId: counselorId,
         responderType: 'human',
         content,
-        timestamp: new Date()
+        timestamp: new Date(),
+        readByStudent: false
       };
 
       const responseRef = doc(collection(db, 'responses'));
@@ -190,16 +191,18 @@ export class MessageService {
     try {
       const q = query(
         collection(db, 'responses'),
-        where('messageId', '==', messageId),
-        orderBy('timestamp', 'asc')
+        where('messageId', '==', messageId)
       );
 
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({
+      const responses = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         timestamp: doc.data().timestamp?.toDate()
       } as Response));
+
+      // Sort in memory by timestamp ascending
+      return responses.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
     } catch (error: any) {
       throw new Error('Failed to fetch responses: ' + error.message);
     }
@@ -286,6 +289,7 @@ export class MessageService {
         responderType: 'ai',
         content: aiResponse.content,
         timestamp: new Date(),
+        readByStudent: false,
         aiModel: aiResponse.model,
         promptTokens: aiResponse.usage?.prompt_tokens,
         completionTokens: aiResponse.usage?.completion_tokens
@@ -360,6 +364,139 @@ export class MessageService {
     // - Historical response times
     // - Time of day/week
     return 60; // 60 minutes default for human responses
+  }
+
+  // Get student's messages and their responses
+  static async getStudentConversations(studentId: string): Promise<{ message: Message; responses: Response[] }[]> {
+    try {
+      // Get all messages from this student
+      const messagesQuery = query(
+        collection(db, 'messages'),
+        where('studentId', '==', studentId),
+        orderBy('timestamp', 'desc')
+      );
+
+      const messagesSnapshot = await getDocs(messagesQuery);
+      const conversations: { message: Message; responses: Response[] }[] = [];
+
+      // For each message, get its responses
+      for (const messageDoc of messagesSnapshot.docs) {
+        const messageData = {
+          id: messageDoc.id,
+          ...messageDoc.data(),
+          timestamp: messageDoc.data().timestamp?.toDate(),
+          updatedAt: messageDoc.data().updatedAt?.toDate()
+        } as Message;
+
+        const responses = await this.getMessageResponses(messageDoc.id);
+        
+        conversations.push({
+          message: messageData,
+          responses: responses
+        });
+      }
+
+      return conversations;
+    } catch (error: any) {
+      throw new Error('Failed to fetch student conversations: ' + error.message);
+    }
+  }
+
+  // Get student conversations filtered by response type - simplified for now
+  static async getStudentConversationsByType(studentId: string, responseType: 'ai' | 'human' | 'all'): Promise<{ message: Message; responses: Response[] }[]> {
+    try {
+      // Get all student messages first (simple query)
+      const messagesQuery = query(
+        collection(db, 'messages'),
+        where('studentId', '==', studentId)
+      );
+
+      const messagesSnapshot = await getDocs(messagesQuery);
+      let allMessages = messagesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: doc.data().timestamp?.toDate(),
+        updatedAt: doc.data().updatedAt?.toDate()
+      } as Message));
+
+      // Filter by response type in memory if needed
+      if (responseType !== 'all') {
+        allMessages = allMessages.filter(msg => msg.responseType === responseType);
+      }
+
+      // Sort by timestamp descending
+      allMessages.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+      const conversations: { message: Message; responses: Response[] }[] = [];
+
+      for (const messageData of allMessages) {
+        const responses = await this.getMessageResponses(messageData.id);
+        
+        conversations.push({
+          message: messageData,
+          responses: responses
+        });
+      }
+
+      return conversations;
+    } catch (error: any) {
+      throw new Error('Failed to fetch filtered conversations: ' + error.message);
+    }
+  }
+
+  // Get unread responses for a student (notifications) - simplified
+  static async getUnreadResponses(studentId: string): Promise<Response[]> {
+    try {
+      // First get all student's messages
+      const messagesQuery = query(
+        collection(db, 'messages'),
+        where('studentId', '==', studentId)
+      );
+
+      const messagesSnapshot = await getDocs(messagesQuery);
+      const messageIds = messagesSnapshot.docs.map(doc => doc.id);
+
+      if (messageIds.length === 0) return [];
+
+      // Get all responses to these messages
+      const allResponses: Response[] = [];
+      
+      // Process in batches of 10 (Firestore 'in' query limit)
+      for (let i = 0; i < messageIds.length; i += 10) {
+        const batch = messageIds.slice(i, i + 10);
+        const responsesQuery = query(
+          collection(db, 'responses'),
+          where('messageId', 'in', batch)
+        );
+
+        const responsesSnapshot = await getDocs(responsesQuery);
+        const batchResponses = responsesSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          timestamp: doc.data().timestamp?.toDate()
+        } as Response));
+        
+        allResponses.push(...batchResponses);
+      }
+
+      // Filter unread responses and sort in memory
+      const unreadResponses = allResponses.filter(response => response.readByStudent !== true);
+      return unreadResponses.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    } catch (error: any) {
+      throw new Error('Failed to fetch unread responses: ' + error.message);
+    }
+  }
+
+  // Mark response as read by student
+  static async markResponseAsRead(responseId: string): Promise<void> {
+    try {
+      await updateDoc(doc(db, 'responses', responseId), {
+        readByStudent: true,
+        readAt: serverTimestamp()
+      });
+    } catch (error: any) {
+      throw new Error('Failed to mark response as read: ' + error.message);
+    }
   }
 
   // Auto-release expired claimed messages (should run as a cloud function)
