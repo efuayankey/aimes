@@ -132,17 +132,49 @@ export class OpenAIService {
     - Know when to recommend professional help for serious mental health concerns
 
     RESPONSE GUIDELINES:
-    - Keep responses conversational and supportive (200-400 words typically)
-    - Use person-first language and avoid clinical jargon
-    - Offer multiple perspectives or options when appropriate
-    - Include relevant resources when helpful
-    - End with an open-ended question to continue the conversation
+    - Keep responses SHORT and supportive (maximum 5 sentences)
+    - Use simple, clear language without clinical jargon
+    - Focus on one main point or suggestion per response
+    - Use plain text only - NO markdown formatting, asterisks, or special characters
+    - End with a brief, caring question to continue the conversation
 
     SAFETY PROTOCOLS:
     - If you detect suicidal ideation, immediately provide crisis resources
     - For serious mental health concerns, recommend professional help
     - Always prioritize user safety over continuing conversation
   `;
+
+  // Clean AI response to remove markdown and formatting artifacts
+  private static cleanAIResponse(content: string): string {
+    return content
+      // Remove markdown bold (**text** or __text__)
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/__(.*?)__/g, '$1')
+      // Remove markdown italic (*text* or _text_)
+      .replace(/\*(.*?)\*/g, '$1')
+      .replace(/_(.*?)_/g, '$1')
+      // Remove markdown headers (# ## ###)
+      .replace(/^#{1,6}\s+/gm, '')
+      // Remove markdown strikethrough (~~text~~)
+      .replace(/~~(.*?)~~/g, '$1')
+      // Remove markdown code blocks (```text```)
+      .replace(/```[\s\S]*?```/g, '')
+      // Remove inline code (`text`)
+      .replace(/`([^`]+)`/g, '$1')
+      // Remove markdown links [text](url)
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      // Remove bullet points and list markers
+      .replace(/^[\s]*[-\*\+]\s+/gm, '')
+      .replace(/^\d+\.\s+/gm, '')
+      // Remove extra asterisks and special characters
+      .replace(/\*/g, '')
+      .replace(/[_~`]/g, '')
+      // Clean up multiple spaces and line breaks
+      .replace(/\s+/g, ' ')
+      .replace(/\n\s*\n/g, '\n')
+      // Trim whitespace
+      .trim();
+  }
 
   // Generate culturally-aware AI response
   static async generateCulturalResponse(
@@ -169,7 +201,7 @@ export class OpenAIService {
         body: JSON.stringify({
           model: this.MODEL,
           messages,
-          max_tokens: 400,
+          max_tokens: 150,
           temperature: 0.7,
           presence_penalty: 0.1,
           frequency_penalty: 0.1
@@ -181,9 +213,10 @@ export class OpenAIService {
       }
 
       const data = await response.json();
+      const rawContent = data.choices[0].message.content;
       
       return {
-        content: data.choices[0].message.content,
+        content: this.cleanAIResponse(rawContent),
         model: data.model,
         usage: data.usage
       };
