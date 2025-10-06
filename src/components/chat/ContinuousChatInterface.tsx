@@ -10,10 +10,14 @@ import {
   Circle,
   MoreVertical,
   X,
-  ArrowLeft
+  ArrowLeft,
+  Download,
+  FileText,
+  BarChart3
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ConversationService } from '../../services/conversationService';
+import { ExportService } from '../../services/exportService';
 import { Conversation, ConversationMessage } from '../../types';
 
 interface ContinuousChatProps {
@@ -28,6 +32,10 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showExportStats, setShowExportStats] = useState(false);
+  const [exportStats, setExportStats] = useState<any>(null);
+  const [isExporting, setIsExporting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -102,6 +110,47 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    }
+  };
+
+  const handleExportJSON = async () => {
+    if (!user?.uid || user.userType !== 'counselor') return;
+    
+    try {
+      setIsExporting(true);
+      await ExportService.exportConversationAsJSON(conversation.id, user.uid);
+      setShowExportMenu(false);
+    } catch (error) {
+      console.error('Failed to export as JSON:', error);
+      alert('Failed to export conversation. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportCSV = async () => {
+    if (!user?.uid || user.userType !== 'counselor') return;
+    
+    try {
+      setIsExporting(true);
+      await ExportService.exportConversationAsCSV(conversation.id, user.uid);
+      setShowExportMenu(false);
+    } catch (error) {
+      console.error('Failed to export as CSV:', error);
+      alert('Failed to export conversation. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const loadExportStats = async () => {
+    try {
+      const stats = await ExportService.getExportStatistics(conversation.id);
+      setExportStats(stats);
+      setShowExportStats(true);
+    } catch (error) {
+      console.error('Failed to load export stats:', error);
+      alert('Failed to load conversation statistics.');
     }
   };
 
@@ -217,6 +266,51 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
               </p>
             </div>
           </div>
+          
+          {/* Export menu for counselors */}
+          {user?.userType === 'counselor' && conversation.type === 'human' && (
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={loadExportStats}
+                className="text-white hover:text-gray-200 transition-colors p-2 rounded-lg hover:bg-white/10"
+                title="View conversation statistics"
+              >
+                <BarChart3 size={20} />
+              </button>
+              
+              <div className="relative">
+                <button
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  className="text-white hover:text-gray-200 transition-colors p-2 rounded-lg hover:bg-white/10"
+                  title="Export conversation"
+                >
+                  <Download size={20} />
+                </button>
+                
+                {showExportMenu && (
+                  <div className="absolute right-0 top-12 bg-white rounded-lg shadow-lg border py-2 z-50 min-w-[160px]">
+                    <button
+                      onClick={handleExportJSON}
+                      disabled={isExporting}
+                      className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 disabled:opacity-50 flex items-center space-x-2"
+                    >
+                      <FileText size={16} />
+                      <span>Export as JSON</span>
+                    </button>
+                    <button
+                      onClick={handleExportCSV}
+                      disabled={isExporting}
+                      className="w-full px-4 py-2 text-left text-gray-700 hover:bg-gray-100 disabled:opacity-50 flex items-center space-x-2"
+                    >
+                      <FileText size={16} />
+                      <span>Export as CSV</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
           <button className="text-white hover:text-gray-200">
             <MoreVertical size={20} />
           </button>
@@ -270,6 +364,81 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
           </button>
         </div>
       </div>
+      
+      {/* Export Statistics Modal */}
+      {showExportStats && exportStats && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Conversation Statistics</h3>
+              <button
+                onClick={() => setShowExportStats(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-sm text-gray-600">Total Messages</p>
+                  <p className="text-xl font-semibold text-gray-900">{exportStats.messageCount}</p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-sm text-gray-600">Duration</p>
+                  <p className="text-xl font-semibold text-gray-900">{exportStats.conversationDuration}</p>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Student Messages:</span>
+                  <span className="font-medium">{exportStats.studentMessages}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Counselor Messages:</span>
+                  <span className="font-medium">{exportStats.counselorMessages}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">AI Messages:</span>
+                  <span className="font-medium">{exportStats.aiMessages}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Total Characters:</span>
+                  <span className="font-medium">{exportStats.totalCharacters.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Avg Message Length:</span>
+                  <span className="font-medium">{exportStats.averageMessageLength} chars</span>
+                </div>
+              </div>
+              
+              <div className="pt-4 border-t">
+                <p className="text-sm text-gray-600 mb-3">Export this conversation:</p>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handleExportJSON}
+                    disabled={isExporting}
+                    className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    <FileText size={16} />
+                    <span>JSON</span>
+                  </button>
+                  <button
+                    onClick={handleExportCSV}
+                    disabled={isExporting}
+                    className="flex-1 flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                  >
+                    <FileText size={16} />
+                    <span>CSV</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

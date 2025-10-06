@@ -13,11 +13,13 @@ import {
   Filter,
   LogOut,
   Send,
-  X
+  X,
+  Download
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { MessageService } from '../../services/messageService';
 import { ConversationService } from '../../services/conversationService';
+import { ExportService } from '../../services/exportService';
 import { Message, MessagePriority, Conversation, ConversationMessage } from '../../types';
 import ContinuousChat from '../chat/ContinuousChatInterface';
 
@@ -366,19 +368,38 @@ const CounselorDashboard: React.FC = () => {
               <h2 className="text-xl font-semibold text-gray-900">
                 {activeTab === 'new' ? 'New Conversation Requests' : 'My Active Conversations'}
               </h2>
-              <span className="text-sm text-gray-600">
-                {activeTab === 'new' ? (
-                  <>
-                    Showing {conversations.length} request{conversations.length !== 1 ? 's' : ''}
-                    {filter !== 'all' && ` (${filter} priority)`}
-                  </>
-                ) : (
-                  <>
-                    {myConversations.length} active conversation{myConversations.length !== 1 ? 's' : ''}
-                    {myUnreadCount > 0 && ` • ${myUnreadCount} unread`}
-                  </>
+              <div className="flex items-center space-x-4">
+                {activeTab === 'mine' && myConversations.length > 0 && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        const conversationIds = myConversations.map(c => c.id);
+                        await ExportService.exportMultipleConversationsAsJSON(conversationIds, user!.uid);
+                      } catch (error) {
+                        console.error('Failed to export conversations:', error);
+                        alert('Failed to export conversations. Please try again.');
+                      }
+                    }}
+                    className="flex items-center space-x-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Download size={16} />
+                    <span>Export All</span>
+                  </button>
                 )}
-              </span>
+                <span className="text-sm text-gray-600">
+                  {activeTab === 'new' ? (
+                    <>
+                      Showing {conversations.length} request{conversations.length !== 1 ? 's' : ''}
+                      {filter !== 'all' && ` (${filter} priority)`}
+                    </>
+                  ) : (
+                    <>
+                      {myConversations.length} active conversation{myConversations.length !== 1 ? 's' : ''}
+                      {myUnreadCount > 0 && ` • ${myUnreadCount} unread`}
+                    </>
+                  )}
+                </span>
+              </div>
             </div>
           </div>
           
