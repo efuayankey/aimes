@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users can read and write their own user document
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Conversations - students can create, read their own
+    match /conversations/{conversationId} {
+      allow create: if request.auth != null;
+      allow read, update: if request.auth != null && (
+        resource.data.studentId == request.auth.uid ||
+        resource.data.counselorId == request.auth.uid ||
+        request.auth.token.userType == 'counselor' ||
+        request.auth.token.userType == 'admin'
+      );
+    }
+    
+    // Conversation messages
+    match /conversation_messages/{messageId} {
+      allow create: if request.auth != null;
+      allow read: if request.auth != null;
+      allow update: if request.auth != null && (
+        request.auth.token.userType == 'counselor' ||
+        request.auth.token.userType == 'admin'
+      );
+    }
+    
+    // Journal entries - students can create and manage their own entries
+    match /journal_entries/{entryId} {
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.studentId;
+      allow read, update, delete: if request.auth != null && (
+        resource.data.studentId == request.auth.uid ||
+        (request.auth.token.userType == 'counselor' && resource.data.sharedWithCounselors == true) ||
+        request.auth.token.userType == 'admin'
+      );
+    }
+    
+    // Messages (for counselor queue)
+    match /messages/{messageId} {
+      allow create: if request.auth != null && 
+        request.auth.token.userType == 'student';
+      allow read: if request.auth != null && (
+        request.auth.token.userType == 'counselor' ||
+        resource.data.studentId == request.auth.uid ||
+        request.auth.token.userType == 'admin'
+      );
+      allow update: if request.auth != null && 
+        request.auth.token.userType == 'counselor';
+    }
+    
+    // Admin can read everything
+    match /{document=**} {
+      allow read: if request.auth != null && 
+        request.auth.token.userType == 'admin';
+    }
+  }
+}

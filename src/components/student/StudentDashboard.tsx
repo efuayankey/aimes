@@ -7,7 +7,7 @@ import { ConversationService } from '../../services/conversationService';
 
 // Placeholder components - we'll build these
 const ChatInterface = React.lazy(() => import('./ChatInterface'));
-const JournalingInterface = React.lazy(() => import('./JournalingInterface'));
+const JournalingInterface = React.lazy(() => import('../journal/JournalingInterface'));
 const MindfulnessLibrary = React.lazy(() => import('../mindfulness/MindfulnessLibrary'));
 
 type StudentView = 'dashboard' | 'chat' | 'messages' | 'journal' | 'mindfulness' | 'settings';

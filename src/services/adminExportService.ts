@@ -11,7 +11,9 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { ConversationService } from './conversationService';
+import { JournalService } from './journalService';
 import { Conversation, ConversationMessage, CulturalBackground } from '../types';
+import { JournalEntry } from '../types/Journal';
 
 export interface AdminExportFilters {
   dateFrom?: Date;
@@ -21,6 +23,7 @@ export interface AdminExportFilters {
   includeAnonymous?: boolean;
   minMessages?: number;
   maxResults?: number;
+  includeJournalData?: boolean;
 }
 
 export interface PlatformStatistics {
@@ -40,6 +43,14 @@ export interface PlatformStatistics {
     conversationCompletionRate: number;
     studentSatisfactionProxy: number;
   };
+  journalStatistics: {
+    totalJournalEntries: number;
+    averageEntriesPerStudent: number;
+    averageMoodScore: number;
+    mostCommonEmotions: string[];
+    privateEntries: number;
+    sharedEntries: number;
+  };
 }
 
 export interface AdminExportData {
@@ -49,6 +60,7 @@ export interface AdminExportData {
     filters: AdminExportFilters;
     totalConversations: number;
     totalMessages: number;
+    totalJournalEntries: number;
     anonymizationApplied: boolean;
   };
   conversations: Array<{
@@ -63,10 +75,62 @@ export interface AdminExportData {
       averageMessageLength: number;
     };
   }>;
+  journalEntries: Array<{
+    entry: JournalEntry;
+    statistics: {
+      wordCount: number;
+      characterCount: number;
+      emotionCount: number;
+      moodNumericValue: number;
+    };
+  }>;
   platformStats: PlatformStatistics;
 }
 
 export class AdminExportService {
+  // Get all journal entries for export
+  static async getAllJournalEntries(filters: AdminExportFilters = {}): Promise<JournalEntry[]> {
+    try {
+      let q = query(collection(db, 'journal_entries'));
+
+      // Apply date filters
+      if (filters.dateFrom) {
+        q = query(q, where('timestamp', '>=', Timestamp.fromDate(filters.dateFrom)));
+      }
+
+      if (filters.dateTo) {
+        q = query(q, where('timestamp', '<=', Timestamp.fromDate(filters.dateTo)));
+      }
+
+      // Order by creation date
+      q = query(q, orderBy('timestamp', 'desc'));
+
+      // Apply limit if specified
+      if (filters.maxResults) {
+        q = query(q, limit(filters.maxResults));
+      }
+
+      const snapshot = await getDocs(q);
+      let entries = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: doc.data().timestamp?.toDate(),
+        lastModified: doc.data().lastModified?.toDate()
+      } as JournalEntry));
+
+      // Filter anonymous entries if specified
+      if (filters.includeAnonymous === false) {
+        // Note: Journal entries don't have anonymous flag like conversations
+        // This filter is maintained for consistency with conversation filters
+      }
+
+      return entries;
+    } catch (error: any) {
+      console.error('Failed to get journal entries:', error);
+      throw new Error('Failed to retrieve journal entries: ' + error.message);
+    }
+  }
+
   // Get all conversations with filters
   static async getAllConversations(filters: AdminExportFilters = {}): Promise<Conversation[]> {
     try {
@@ -139,6 +203,7 @@ export class AdminExportService {
   ): Promise<void> {
     try {
       const conversations = await this.getAllConversations(filters);
+      const journalEntries = filters.includeJournalData ? await this.getAllJournalEntries(filters) : [];
       const platformStats = await this.getPlatformStatistics();
 
       const exportData: AdminExportData = {
@@ -148,9 +213,11 @@ export class AdminExportService {
           filters,
           totalConversations: conversations.length,
           totalMessages: 0,
+          totalJournalEntries: journalEntries.length,
           anonymizationApplied: true
         },
         conversations: [],
+        journalEntries: [],
         platformStats
       };
 
@@ -203,6 +270,37 @@ export class AdminExportService {
         }
       }
 
+      // Process journal entries if included
+      if (filters.includeJournalData) {
+        for (const entry of journalEntries) {
+          try {
+            const moodValues = { 'very-low': 1, 'low': 3, 'neutral': 5, 'good': 7, 'very-good': 9 };
+            
+            exportData.journalEntries.push({
+              entry: {
+                ...entry,
+                // Anonymize student ID
+                studentId: `student_${entry.studentId.slice(-6)}`,
+                // Remove or anonymize any personally identifiable information
+                content: entry.content, // Keep content for training but consider further anonymization
+                counselorNotes: entry.counselorNotes?.map(note => ({
+                  ...note,
+                  counselorId: `counselor_${note.counselorId.slice(-6)}`
+                })) || []
+              },
+              statistics: {
+                wordCount: entry.wordCount,
+                characterCount: entry.content.length,
+                emotionCount: entry.emotionTags.length,
+                moodNumericValue: moodValues[entry.mood] || 5
+              }
+            });
+          } catch (error) {
+            console.error(`Failed to process journal entry ${entry.id}:`, error);
+          }
+        }
+      }
+
       // Create and download the export
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
         type: 'application/json' 
@@ -230,23 +328,26 @@ export class AdminExportService {
   ): Promise<void> {
     try {
       const conversations = await this.getAllConversations(filters);
+      const journalEntries = filters.includeJournalData ? await this.getAllJournalEntries(filters) : [];
 
       // CSV headers optimized for model training
       const headers = [
-        'conversation_id',
-        'message_id', 
+        'data_type', // 'conversation' or 'journal'
+        'entry_id',
+        'user_id', 
         'timestamp',
-        'sender_type',
+        'content_type', // 'message', 'journal_entry'
+        'sender_type', // 'student', 'counselor', 'ai', 'journal_author'
         'cultural_context',
-        'conversation_type',
-        'priority',
-        'is_anonymous',
-        'message_content',
-        'message_length',
+        'content',
+        'content_length',
         'word_count',
-        'conversation_age_minutes',
-        'message_sequence_number',
-        'previous_message_type',
+        'mood_level', // for journal entries
+        'mood_numeric', // 1-10 scale
+        'emotions', // comma-separated
+        'intensity_level', // 1-10 for journal entries
+        'is_private',
+        'sequence_number',
         'response_time_minutes'
       ];
 
@@ -272,20 +373,22 @@ export class AdminExportService {
             const conversationAgeMinutes = Math.round(conversationAge / (1000 * 60));
 
             const row = [
-              `conv_${conversation.id.slice(-8)}`,
-              `msg_${message.id.slice(-8)}`,
+              'conversation', // data_type
+              `conv_${conversation.id.slice(-8)}`, // entry_id
+              `student_${conversation.studentId.slice(-6)}`, // user_id
               message.timestamp.toISOString(),
+              'message', // content_type
               message.senderType,
               conversation.culturalContext,
-              conversation.type,
-              conversation.priority,
-              conversation.isAnonymous.toString(),
               `"${message.content.replace(/"/g, '""')}"`, // Escape quotes
               message.content.length.toString(),
               message.content.split(/\s+/).length.toString(),
-              conversationAgeMinutes.toString(),
+              '', // mood_level (not applicable for messages)
+              '', // mood_numeric (not applicable for messages)
+              '', // emotions (not applicable for messages)
+              '', // intensity_level (not applicable for messages)
+              conversation.isAnonymous.toString(),
               (i + 1).toString(),
-              previousMessage ? previousMessage.senderType : '',
               responseTimeMinutes
             ];
 
@@ -296,15 +399,50 @@ export class AdminExportService {
         }
       }
 
+      // Process journal entries for training data
+      if (filters.includeJournalData) {
+        const moodValues = { 'very-low': 1, 'low': 3, 'neutral': 5, 'good': 7, 'very-good': 9 };
+        
+        journalEntries.forEach((entry, index) => {
+          try {
+            const row = [
+              'journal', // data_type
+              `journal_${entry.id.slice(-8)}`, // entry_id
+              `student_${entry.studentId.slice(-6)}`, // user_id
+              entry.timestamp.toISOString(),
+              'journal_entry', // content_type
+              'journal_author', // sender_type
+              '', // cultural_context (not directly stored in journal entries)
+              `"${entry.content.replace(/"/g, '""')}"`, // Escape quotes
+              entry.content.length.toString(),
+              entry.wordCount.toString(),
+              entry.mood, // mood_level
+              moodValues[entry.mood].toString(), // mood_numeric
+              entry.emotionTags.join(';'), // emotions (semicolon-separated to avoid CSV conflicts)
+              entry.intensityLevel.toString(), // intensity_level
+              entry.isPrivate.toString(),
+              '1', // sequence_number (always 1 for journal entries)
+              '' // response_time_minutes (not applicable for journal entries)
+            ];
+
+            trainingRows.push(row.join(','));
+          } catch (error) {
+            console.error(`Failed to process journal entry ${entry.id} for training:`, error);
+          }
+        });
+      }
+
       // Add metadata as comments
       const metadata = [
         `# AIMES Platform Training Data Export`,
         `# Exported: ${new Date().toISOString()}`,
         `# Exported by: admin_${adminId.slice(-6)}`,
         `# Total conversations: ${conversations.length}`,
-        `# Total messages: ${trainingRows.length - 1}`,
+        `# Total journal entries: ${journalEntries.length}`,
+        `# Total training rows: ${trainingRows.length - 1}`,
         `# Filters applied: ${JSON.stringify(filters)}`,
         `# Anonymization: Applied`,
+        `# Data types: conversations${filters.includeJournalData ? ', journal_entries' : ''}`,
         ``,
         ...trainingRows
       ];
@@ -345,6 +483,15 @@ export class AdminExportService {
       const messagesSnapshot = await getDocs(collection(db, 'conversation_messages'));
       const totalMessages = messagesSnapshot.size;
 
+      // Get all journal entries
+      const journalSnapshot = await getDocs(collection(db, 'journal_entries'));
+      const journalEntries = journalSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: doc.data().timestamp?.toDate(),
+        lastModified: doc.data().lastModified?.toDate()
+      } as JournalEntry));
+
       // Calculate basic stats
       const totalConversations = conversations.length;
       const aiConversations = conversations.filter(c => c.type === 'ai').length;
@@ -368,6 +515,31 @@ export class AdminExportService {
       // Response effectiveness metrics
       const responseEffectiveness = await this.calculateResponseEffectiveness(conversations);
 
+      // Calculate journal statistics
+      const totalJournalEntries = journalEntries.length;
+      const uniqueJournalStudents = new Set(journalEntries.map(e => e.studentId)).size;
+      const averageEntriesPerStudent = uniqueJournalStudents > 0 ? totalJournalEntries / uniqueJournalStudents : 0;
+      
+      // Calculate average mood score
+      const moodValues = { 'very-low': 1, 'low': 3, 'neutral': 5, 'good': 7, 'very-good': 9 };
+      const moodScores = journalEntries.map(e => moodValues[e.mood]);
+      const averageMoodScore = moodScores.length > 0 ? moodScores.reduce((sum, score) => sum + score, 0) / moodScores.length : 5;
+      
+      // Find most common emotions
+      const emotionCounts: { [key: string]: number } = {};
+      journalEntries.forEach(entry => {
+        entry.emotionTags.forEach(emotion => {
+          emotionCounts[emotion] = (emotionCounts[emotion] || 0) + 1;
+        });
+      });
+      const mostCommonEmotions = Object.entries(emotionCounts)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5)
+        .map(([emotion]) => emotion);
+
+      const privateEntries = journalEntries.filter(e => e.isPrivate).length;
+      const sharedEntries = journalEntries.filter(e => e.sharedWithCounselors).length;
+
       return {
         totalConversations,
         totalMessages,
@@ -380,7 +552,15 @@ export class AdminExportService {
         conversationsByDate,
         conversationsByCulture,
         popularTopics,
-        responseEffectiveness
+        responseEffectiveness,
+        journalStatistics: {
+          totalJournalEntries,
+          averageEntriesPerStudent: Math.round(averageEntriesPerStudent * 10) / 10,
+          averageMoodScore: Math.round(averageMoodScore * 10) / 10,
+          mostCommonEmotions,
+          privateEntries,
+          sharedEntries
+        }
       };
     } catch (error: any) {
       console.error('Failed to get platform statistics:', error);

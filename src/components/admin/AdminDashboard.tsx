@@ -16,7 +16,10 @@ import {
   Globe,
   Clock,
   Target,
-  RefreshCw
+  RefreshCw,
+  BookOpen,
+  Lock,
+  Share2
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { AdminExportService, AdminExportFilters, PlatformStatistics } from '../../services/adminExportService';
@@ -37,7 +40,8 @@ const AdminDashboard: React.FC = () => {
     culturalBackground: 'all',
     includeAnonymous: true,
     minMessages: 1,
-    maxResults: 1000
+    maxResults: 1000,
+    includeJournalData: true
   });
 
   useEffect(() => {
@@ -190,6 +194,63 @@ const AdminDashboard: React.FC = () => {
           </div>
         )}
 
+        {/* Journal Statistics Row */}
+        {stats && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white rounded-lg p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Journal Entries</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.journalStatistics.totalJournalEntries.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Avg: {stats.journalStatistics.averageEntriesPerStudent} per student
+                  </p>
+                </div>
+                <BookOpen className="h-8 w-8 text-purple-600" />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Average Mood</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.journalStatistics.averageMoodScore}/10</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Platform-wide mood score
+                  </p>
+                </div>
+                <TrendingUp className="h-8 w-8 text-green-600" />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Private Entries</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.journalStatistics.privateEntries.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {Math.round((stats.journalStatistics.privateEntries / stats.journalStatistics.totalJournalEntries) * 100)}% of total
+                  </p>
+                </div>
+                <Lock className="h-8 w-8 text-red-600" />
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Shared Entries</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.journalStatistics.sharedEntries.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Available to counselors
+                  </p>
+                </div>
+                <Share2 className="h-8 w-8 text-blue-600" />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Data Export Section */}
         <div className="bg-white rounded-xl shadow-sm mb-8">
           <div className="p-6 border-b border-gray-200">
@@ -325,7 +386,7 @@ const AdminDashboard: React.FC = () => {
               </div>
 
               {/* Include Anonymous Toggle */}
-              <div className="mt-4">
+              <div className="mt-4 space-y-3">
                 <label className="flex items-center space-x-2">
                   <input
                     type="checkbox"
@@ -334,6 +395,16 @@ const AdminDashboard: React.FC = () => {
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm font-medium text-gray-700">Include anonymous conversations</span>
+                </label>
+                
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={filters.includeJournalData}
+                    onChange={(e) => updateFilter('includeJournalData', e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Include journal entries data</span>
                 </label>
               </div>
             </div>

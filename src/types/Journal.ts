@@ -1,4 +1,28 @@
 export type MoodLevel = 'very-low' | 'low' | 'neutral' | 'good' | 'very-good';
+
+export const MOOD_VALUES: Record<MoodLevel, number> = {
+  'very-low': 1,
+  'low': 3,
+  'neutral': 5,
+  'good': 7,
+  'very-good': 9
+};
+
+export const MOOD_COLORS: Record<MoodLevel, string> = {
+  'very-low': '#ef4444',
+  'low': '#f97316',
+  'neutral': '#eab308',
+  'good': '#22c55e',
+  'very-good': '#10b981'
+};
+
+export const MOOD_EMOJIS: Record<MoodLevel, string> = {
+  'very-low': '😢',
+  'low': '😔',
+  'neutral': '😐',
+  'good': '😊',
+  'very-good': '😄'
+};
 export type EmotionCategory = 
   | 'anxious' | 'sad' | 'angry' | 'frustrated' | 'overwhelmed'
   | 'happy' | 'excited' | 'calm' | 'grateful' | 'hopeful'
