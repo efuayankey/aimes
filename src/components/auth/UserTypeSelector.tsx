@@ -1,6 +1,6 @@
 // User type selection component for registration
 import React from 'react';
-import { GraduationCap, Heart, CheckCircle } from 'lucide-react';
+import { GraduationCap, Heart, CheckCircle, Shield } from 'lucide-react';
 import { UserType } from '../../types';
 
 interface UserTypeSelectorProps {

@@ -25,11 +25,13 @@ interface AuthContextType {
   // Profile management
   updateProfile: (updates: Partial<User>) => Promise<void>;
   refreshUserData: () => Promise<void>;
+  setUser: (user: User | null) => void;
 
   // Utility
   clearError: () => void;
   isStudent: () => boolean;
   isCounselor: () => boolean;
+  isAdmin: () => boolean;
   hasVerifiedEmail: () => boolean;
 }
 
@@ -211,6 +213,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   
   const isCounselor = () => user?.userType === 'counselor';
   
+  const isAdmin = () => user?.userType === 'admin';
+  
   const hasVerifiedEmail = () => user?.isEmailVerified === true;
 
   // Context value
@@ -228,11 +232,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resetPassword,
     updateProfile,
     refreshUserData,
+    setUser,
 
     // Utility
     clearError,
     isStudent,
     isCounselor,
+    isAdmin,
     hasVerifiedEmail
   };
 

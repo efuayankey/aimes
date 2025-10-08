@@ -4,12 +4,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { CulturalBackgroundModal } from './CulturalBackgroundModal';
 import { CulturalBackground } from '../../types';
 
-// Placeholder components - we'll build these next
+// Dashboard components
 const StudentDashboard = React.lazy(() => import('../student/StudentDashboard'));
 const CounselorDashboard = React.lazy(() => import('../counselor/CounselorDashboard'));
+const AdminDashboard = React.lazy(() => import('../admin/AdminDashboard'));
 
 export const Dashboard: React.FC = () => {
-  const { user, isStudent, isCounselor } = useAuth();
+  const { user, isStudent, isCounselor, isAdmin } = useAuth();
   const [showCulturalModal, setShowCulturalModal] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
@@ -71,7 +72,7 @@ export const Dashboard: React.FC = () => {
             <div className="text-center">
               <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-teal-600 mx-auto mb-4"></div>
               <p className="text-gray-600 text-lg">
-                Loading your {isStudent() ? 'student' : 'counselor'} dashboard...
+                Loading your {isStudent() ? 'student' : isCounselor() ? 'counselor' : 'admin'} dashboard...
               </p>
             </div>
           </div>
@@ -79,6 +80,7 @@ export const Dashboard: React.FC = () => {
       >
         {isStudent() && <StudentDashboard />}
         {isCounselor() && <CounselorDashboard />}
+        {isAdmin() && <AdminDashboard />}
       </React.Suspense>
 
       <CulturalBackgroundModal

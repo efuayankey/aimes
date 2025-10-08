@@ -1,4 +1,4 @@
-export type UserType = 'student' | 'counselor';
+export type UserType = 'student' | 'counselor' | 'admin';
 
 export type CulturalBackground = 
   | 'african-american'
@@ -52,6 +52,20 @@ export interface CounselorProfile {
   };
 }
 
+export interface AdminProfile {
+  role: 'super-admin' | 'data-admin' | 'platform-admin';
+  department?: string;
+  accessLevel: number; // 1-10, 10 being highest
+  permissions: {
+    canExportAllData: boolean;
+    canViewAnalytics: boolean;
+    canManageUsers: boolean;
+    canModerateContent: boolean;
+    canAccessSystemLogs: boolean;
+  };
+  lastDataExport?: Date;
+}
+
 export interface User {
   uid: string;
   email: string;
@@ -59,6 +73,7 @@ export interface User {
   profile: UserProfile;
   studentProfile?: StudentProfile;
   counselorProfile?: CounselorProfile;
+  adminProfile?: AdminProfile;
   isEmailVerified: boolean;
   isActive: boolean;
 }
@@ -70,6 +85,9 @@ export interface UserPermissions {
   canViewAnalytics: boolean;
   canAccessMindfulness: boolean;
   canExportData: boolean;
+  canAccessAdminDashboard: boolean;
+  canExportAllPlatformData: boolean;
+  canManageUsers: boolean;
 }
 
 export interface AuthUser {

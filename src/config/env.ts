@@ -13,7 +13,12 @@ export const ENV = {
     storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || process.env.VITE_FIREBASE_STORAGE_BUCKET,
     messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || process.env.VITE_FIREBASE_APP_ID
-  }
+  },
+
+  // Secret Admin Configuration (optional - uses defaults if not set)
+  SECRET_ADMIN_EMAIL: process.env.NEXT_PUBLIC_SECRET_ADMIN_EMAIL || process.env.VITE_SECRET_ADMIN_EMAIL,
+  SECRET_ADMIN_PASSWORD: process.env.NEXT_PUBLIC_SECRET_ADMIN_PASSWORD || process.env.VITE_SECRET_ADMIN_PASSWORD,
+  SECRET_URL_TOKEN: process.env.NEXT_PUBLIC_SECRET_URL_TOKEN || process.env.VITE_SECRET_URL_TOKEN
 };
 
 // Validation to ensure required environment variables are present

@@ -13,12 +13,14 @@ import {
   ArrowLeft,
   Download,
   FileText,
-  BarChart3
+  BarChart3,
+  Brain
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ConversationService } from '../../services/conversationService';
 import { ExportService } from '../../services/exportService';
 import { Conversation, ConversationMessage } from '../../types';
+import FeedbackInterface from '../counselor/FeedbackInterface';
 
 interface ContinuousChatProps {
   conversation: Conversation;
@@ -36,6 +38,9 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
   const [showExportStats, setShowExportStats] = useState(false);
   const [exportStats, setExportStats] = useState<any>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState<ConversationMessage | null>(null);
+  const [feedbackStudentMessage, setFeedbackStudentMessage] = useState<ConversationMessage | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -221,6 +226,26 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
                 </div>
               )}
             </div>
+
+            {/* Feedback button for counselor messages */}
+            {isCurrentUser && user?.userType === 'counselor' && (
+              <div className={`mt-2 ${isCurrentUser ? 'text-right' : 'text-left'}`}>
+                <button
+                  onClick={() => {
+                    const studentMessage = messages.find((m, index) => 
+                      index < messages.indexOf(message) && m.senderType === 'student'
+                    );
+                    setFeedbackMessage(message);
+                    setFeedbackStudentMessage(studentMessage || null);
+                    setShowFeedback(true);
+                  }}
+                  className="inline-flex items-center space-x-1 px-2 py-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                  <Brain size={12} />
+                  <span>Get AI Feedback</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -434,6 +459,45 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
                     <span>CSV</span>
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Feedback Modal */}
+      {showFeedback && feedbackMessage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">AI Response Analysis</h2>
+              <button
+                onClick={() => {
+                  setShowFeedback(false);
+                  setFeedbackMessage(null);
+                  setFeedbackStudentMessage(null);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="overflow-y-auto max-h-[calc(90vh-80px)]">
+              <div className="p-6">
+                <FeedbackInterface
+                  responseContent={feedbackMessage.content}
+                  studentMessage={feedbackStudentMessage?.content || 'No previous student message found'}
+                  conversationHistory={messages.slice(-5)} // Last 5 messages for context
+                  counselorId={user?.uid || ''}
+                  culturalContext={conversation.culturalContext}
+                  onFeedbackComplete={(feedback) => {
+                    console.log('Feedback completed:', feedback);
+                    setShowFeedback(false);
+                    setFeedbackMessage(null);
+                    setFeedbackStudentMessage(null);
+                  }}
+                />
               </div>
             </div>
           </div>
