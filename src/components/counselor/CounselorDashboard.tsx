@@ -14,7 +14,9 @@ import {
   LogOut,
   Send,
   X,
-  Download
+  Download,
+  BarChart3,
+  Target
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { MessageService } from '../../services/messageService';
@@ -22,6 +24,9 @@ import { ConversationService } from '../../services/conversationService';
 import { ExportService } from '../../services/exportService';
 import { Message, MessagePriority, Conversation, ConversationMessage } from '../../types';
 import ContinuousChat from '../chat/ContinuousChatInterface';
+
+// Lazy load the feedback dashboard
+const CounselorFeedbackDashboard = React.lazy(() => import('../feedback/CounselorFeedbackDashboard'));
 
 interface ConversationQueueProps {
   conversations: Conversation[];
@@ -153,6 +158,7 @@ const CounselorDashboard: React.FC = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [activeTab, setActiveTab] = useState<'new' | 'mine'>('new');
   const [myUnreadCount, setMyUnreadCount] = useState(0);
+  const [currentView, setCurrentView] = useState<'queue' | 'feedback'>('queue');
   const [stats, setStats] = useState({
     total: 0,
     urgent: 0,
@@ -330,38 +336,71 @@ const CounselorDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Conversation Management */}
-        <div className="bg-white rounded-xl shadow-sm">
-          {/* Tab Navigation */}
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-8 px-6">
-              <button
-                onClick={() => setActiveTab('new')}
-                className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'new'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                New Requests ({conversations.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('mine')}
-                className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors relative ${
-                  activeTab === 'mine'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                My Conversations ({myConversations.length})
-                {myUnreadCount > 0 && (
-                  <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] h-5 flex items-center justify-center">
-                    {myUnreadCount}
-                  </span>
-                )}
-              </button>
-            </nav>
+        {/* Main Navigation */}
+        <div className="mb-8">
+          <div className="bg-white rounded-xl shadow-sm">
+            <div className="border-b border-gray-200">
+              <nav className="flex space-x-8 px-6">
+                <button
+                  onClick={() => setCurrentView('queue')}
+                  className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors flex items-center space-x-2 ${
+                    currentView === 'queue'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <MessageSquare size={16} />
+                  <span>Message Queue</span>
+                </button>
+                <button
+                  onClick={() => setCurrentView('feedback')}
+                  className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors flex items-center space-x-2 ${
+                    currentView === 'feedback'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <BarChart3 size={16} />
+                  <span>Performance & Feedback</span>
+                </button>
+              </nav>
+            </div>
           </div>
+        </div>
+
+        {currentView === 'queue' ? (
+          /* Conversation Management */
+          <div className="bg-white rounded-xl shadow-sm">
+            {/* Tab Navigation */}
+            <div className="border-b border-gray-200">
+              <nav className="flex space-x-8 px-6">
+                <button
+                  onClick={() => setActiveTab('new')}
+                  className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
+                    activeTab === 'new'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  New Requests ({conversations.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab('mine')}
+                  className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors relative ${
+                    activeTab === 'mine'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  My Conversations ({myConversations.length})
+                  {myUnreadCount > 0 && (
+                    <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] h-5 flex items-center justify-center">
+                      {myUnreadCount}
+                    </span>
+                  )}
+                </button>
+              </nav>
+            </div>
           
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between">
@@ -403,24 +442,34 @@ const CounselorDashboard: React.FC = () => {
             </div>
           </div>
           
-          <div className="p-6">
-            {activeTab === 'new' ? (
-              <ConversationQueue 
-                conversations={conversations}
-                onClaimConversation={handleClaimConversation}
-                isLoading={isLoading}
-              />
-            ) : (
-              <ConversationQueue 
-                conversations={myConversations}
-                onClaimConversation={() => {}} // Not used for my conversations
-                onSelectConversation={handleSelectMyConversation}
-                isLoading={isLoading}
-                isMyConversations={true}
-              />
-            )}
+            <div className="p-6">
+              {activeTab === 'new' ? (
+                <ConversationQueue 
+                  conversations={conversations}
+                  onClaimConversation={handleClaimConversation}
+                  isLoading={isLoading}
+                />
+              ) : (
+                <ConversationQueue 
+                  conversations={myConversations}
+                  onClaimConversation={() => {}} // Not used for my conversations
+                  onSelectConversation={handleSelectMyConversation}
+                  isLoading={isLoading}
+                  isMyConversations={true}
+                />
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Feedback Dashboard */
+          <React.Suspense fallback={
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          }>
+            <CounselorFeedbackDashboard />
+          </React.Suspense>
+        )}
       </div>
 
       {/* Conversation Chat Interface */}

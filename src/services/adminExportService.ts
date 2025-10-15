@@ -14,6 +14,7 @@ import { ConversationService } from './conversationService';
 import { JournalService } from './journalService';
 import { Conversation, ConversationMessage, CulturalBackground } from '../types';
 import { JournalEntry } from '../types/Journal';
+import { AIFeedback } from '../types/Feedback';
 
 export interface AdminExportFilters {
   dateFrom?: Date;
@@ -24,6 +25,10 @@ export interface AdminExportFilters {
   minMessages?: number;
   maxResults?: number;
   includeJournalData?: boolean;
+  includeFeedbackData?: boolean;
+  counselorId?: string;
+  minFeedbackScore?: number;
+  maxFeedbackScore?: number;
 }
 
 export interface PlatformStatistics {
@@ -51,6 +56,15 @@ export interface PlatformStatistics {
     privateEntries: number;
     sharedEntries: number;
   };
+  feedbackStatistics: {
+    totalFeedback: number;
+    averageOverallScore: number;
+    flaggedForReviewCount: number;
+    counselorPerformanceAverage: number;
+    culturalSensitivityAverage: number;
+    empathyAverage: number;
+    professionalismAverage: number;
+  };
 }
 
 export interface AdminExportData {
@@ -61,6 +75,7 @@ export interface AdminExportData {
     totalConversations: number;
     totalMessages: number;
     totalJournalEntries: number;
+    totalFeedback: number;
     anonymizationApplied: boolean;
   };
   conversations: Array<{
@@ -84,10 +99,69 @@ export interface AdminExportData {
       moodNumericValue: number;
     };
   }>;
+  feedback: Array<{
+    feedback: AIFeedback;
+    statistics: {
+      overallPerformance: string;
+      strongestArea: string;
+      weakestArea: string;
+      improvementPotential: number;
+    };
+  }>;
   platformStats: PlatformStatistics;
 }
 
 export class AdminExportService {
+  // Get all AI feedback entries for export
+  static async getAllFeedback(filters: AdminExportFilters = {}): Promise<AIFeedback[]> {
+    try {
+      let q = query(collection(db, 'ai_feedback'));
+
+      // Apply counselor filter
+      if (filters.counselorId) {
+        q = query(q, where('counselorId', '==', filters.counselorId));
+      }
+
+      // Apply date filters
+      if (filters.dateFrom) {
+        q = query(q, where('analyzedAt', '>=', Timestamp.fromDate(filters.dateFrom)));
+      }
+
+      if (filters.dateTo) {
+        q = query(q, where('analyzedAt', '<=', Timestamp.fromDate(filters.dateTo)));
+      }
+
+      // Order by analysis date
+      q = query(q, orderBy('analyzedAt', 'desc'));
+
+      // Apply limit if specified
+      if (filters.maxResults) {
+        q = query(q, limit(filters.maxResults));
+      }
+
+      const snapshot = await getDocs(q);
+      let feedback = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        analyzedAt: doc.data().analyzedAt?.toDate()
+      } as AIFeedback));
+
+      // Apply score filters (client-side filtering)
+      if (filters.minFeedbackScore !== undefined) {
+        feedback = feedback.filter(f => f.scores.overall >= filters.minFeedbackScore!);
+      }
+
+      if (filters.maxFeedbackScore !== undefined) {
+        feedback = feedback.filter(f => f.scores.overall <= filters.maxFeedbackScore!);
+      }
+
+      return feedback;
+    } catch (error: any) {
+      console.error('Failed to get feedback entries:', error);
+      throw new Error('Failed to retrieve feedback entries: ' + error.message);
+    }
+  }
+
   // Get all journal entries for export
   static async getAllJournalEntries(filters: AdminExportFilters = {}): Promise<JournalEntry[]> {
     try {
@@ -204,6 +278,7 @@ export class AdminExportService {
     try {
       const conversations = await this.getAllConversations(filters);
       const journalEntries = filters.includeJournalData ? await this.getAllJournalEntries(filters) : [];
+      const feedback = filters.includeFeedbackData ? await this.getAllFeedback(filters) : [];
       const platformStats = await this.getPlatformStatistics();
 
       const exportData: AdminExportData = {
@@ -214,10 +289,12 @@ export class AdminExportService {
           totalConversations: conversations.length,
           totalMessages: 0,
           totalJournalEntries: journalEntries.length,
+          totalFeedback: feedback.length,
           anonymizationApplied: true
         },
         conversations: [],
         journalEntries: [],
+        feedback: [],
         platformStats
       };
 
@@ -301,6 +378,60 @@ export class AdminExportService {
         }
       }
 
+      // Process feedback entries if included
+      if (filters.includeFeedbackData) {
+        for (const feedbackEntry of feedback) {
+          try {
+            // Find strongest and weakest areas
+            const scores = feedbackEntry.scores;
+            const scoreEntries = [
+              { area: 'Cultural Sensitivity', score: scores.culturalSensitivity },
+              { area: 'Cultural Awareness', score: scores.culturalAwareness },
+              { area: 'Empathy', score: scores.empathy },
+              { area: 'Professionalism', score: scores.professionalism },
+              { area: 'Actionability', score: scores.actionability },
+              { area: 'Question Quality', score: scores.questionQuality },
+              { area: 'Language Appropriateness', score: scores.languageAppropriate },
+              { area: 'Response Length', score: scores.responseLength }
+            ];
+            
+            const strongestArea = scoreEntries.reduce((max, current) => 
+              current.score > max.score ? current : max
+            );
+            const weakestArea = scoreEntries.reduce((min, current) => 
+              current.score < min.score ? current : min
+            );
+
+            // Calculate improvement potential (how much room for growth)
+            const maxPossibleScore = 10;
+            const currentAverage = (scores.culturalSensitivity + scores.culturalAwareness + 
+                                  scores.empathy + scores.professionalism + scores.actionability + 
+                                  scores.questionQuality + scores.languageAppropriate + scores.responseLength) / 8;
+            const improvementPotential = ((maxPossibleScore - currentAverage) / maxPossibleScore) * 100;
+
+            exportData.feedback.push({
+              feedback: {
+                ...feedbackEntry,
+                // Anonymize IDs
+                counselorId: `counselor_${feedbackEntry.counselorId.slice(-6)}`,
+                studentId: `student_${feedbackEntry.studentId.slice(-6)}`,
+                messageId: `msg_${feedbackEntry.messageId.slice(-8)}`
+              },
+              statistics: {
+                overallPerformance: feedbackEntry.scores.overall >= 8 ? 'Excellent' : 
+                                  feedbackEntry.scores.overall >= 6 ? 'Good' : 
+                                  feedbackEntry.scores.overall >= 4 ? 'Needs Improvement' : 'Poor',
+                strongestArea: strongestArea.area,
+                weakestArea: weakestArea.area,
+                improvementPotential: Math.round(improvementPotential)
+              }
+            });
+          } catch (error) {
+            console.error(`Failed to process feedback entry ${feedbackEntry.id}:`, error);
+          }
+        }
+      }
+
       // Create and download the export
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
         type: 'application/json' 
@@ -329,15 +460,16 @@ export class AdminExportService {
     try {
       const conversations = await this.getAllConversations(filters);
       const journalEntries = filters.includeJournalData ? await this.getAllJournalEntries(filters) : [];
+      const feedback = filters.includeFeedbackData ? await this.getAllFeedback(filters) : [];
 
       // CSV headers optimized for model training
       const headers = [
-        'data_type', // 'conversation' or 'journal'
+        'data_type', // 'conversation', 'journal', 'feedback'
         'entry_id',
         'user_id', 
         'timestamp',
-        'content_type', // 'message', 'journal_entry'
-        'sender_type', // 'student', 'counselor', 'ai', 'journal_author'
+        'content_type', // 'message', 'journal_entry', 'feedback_analysis'
+        'sender_type', // 'student', 'counselor', 'ai', 'journal_author', 'ai_analyst'
         'cultural_context',
         'content',
         'content_length',
@@ -348,7 +480,15 @@ export class AdminExportService {
         'intensity_level', // 1-10 for journal entries
         'is_private',
         'sequence_number',
-        'response_time_minutes'
+        'response_time_minutes',
+        // Additional feedback-specific fields
+        'overall_score', // feedback overall score
+        'cultural_sensitivity_score',
+        'empathy_score',
+        'professionalism_score',
+        'flagged_for_review',
+        'strongest_area',
+        'weakest_area'
       ];
 
       const trainingRows: string[] = [headers.join(',')];
@@ -389,7 +529,9 @@ export class AdminExportService {
               '', // intensity_level (not applicable for messages)
               conversation.isAnonymous.toString(),
               (i + 1).toString(),
-              responseTimeMinutes
+              responseTimeMinutes,
+              // Feedback fields (not applicable for messages)
+              '', '', '', '', '', '', ''
             ];
 
             trainingRows.push(row.join(','));
@@ -422,12 +564,80 @@ export class AdminExportService {
               entry.intensityLevel.toString(), // intensity_level
               entry.isPrivate.toString(),
               '1', // sequence_number (always 1 for journal entries)
-              '' // response_time_minutes (not applicable for journal entries)
+              '', // response_time_minutes (not applicable for journal entries)
+              // Feedback fields (not applicable for journal entries)
+              '', '', '', '', '', '', ''
             ];
 
             trainingRows.push(row.join(','));
           } catch (error) {
             console.error(`Failed to process journal entry ${entry.id} for training:`, error);
+          }
+        });
+      }
+
+      // Process feedback data for training
+      if (filters.includeFeedbackData) {
+        feedback.forEach((feedbackEntry, index) => {
+          try {
+            // Find strongest and weakest areas
+            const scores = feedbackEntry.scores;
+            const scoreEntries = [
+              { area: 'Cultural Sensitivity', score: scores.culturalSensitivity },
+              { area: 'Cultural Awareness', score: scores.culturalAwareness },
+              { area: 'Empathy', score: scores.empathy },
+              { area: 'Professionalism', score: scores.professionalism },
+              { area: 'Actionability', score: scores.actionability },
+              { area: 'Question Quality', score: scores.questionQuality },
+              { area: 'Language Appropriateness', score: scores.languageAppropriate },
+              { area: 'Response Length', score: scores.responseLength }
+            ];
+            
+            const strongestArea = scoreEntries.reduce((max, current) => 
+              current.score > max.score ? current : max
+            );
+            const weakestArea = scoreEntries.reduce((min, current) => 
+              current.score < min.score ? current : min
+            );
+
+            // Create feedback analysis content combining all suggestions
+            const analysisContent = [
+              'Strengths: ' + feedbackEntry.suggestions.strengths.join('; '),
+              'Improvements: ' + feedbackEntry.suggestions.improvements.join('; '),
+              'Cultural Tips: ' + feedbackEntry.suggestions.culturalTips.join('; ')
+            ].join(' | ');
+
+            const row = [
+              'feedback', // data_type
+              `feedback_${feedbackEntry.id.slice(-8)}`, // entry_id
+              `counselor_${feedbackEntry.counselorId.slice(-6)}`, // user_id
+              feedbackEntry.analyzedAt.toISOString(),
+              'feedback_analysis', // content_type
+              'ai_analyst', // sender_type
+              feedbackEntry.responseContext.culturalBackground, // cultural_context
+              `"${analysisContent.replace(/"/g, '""')}"`, // Escape quotes
+              analysisContent.length.toString(),
+              analysisContent.split(/\s+/).length.toString(),
+              '', // mood_level (not applicable for feedback)
+              '', // mood_numeric (not applicable for feedback)
+              '', // emotions (not applicable for feedback)
+              '', // intensity_level (not applicable for feedback)
+              'false', // is_private (feedback is for counselor training)
+              '1', // sequence_number (always 1 for feedback entries)
+              '', // response_time_minutes (not applicable for feedback)
+              // Feedback-specific fields
+              feedbackEntry.scores.overall.toString(),
+              feedbackEntry.scores.culturalSensitivity.toString(),
+              feedbackEntry.scores.empathy.toString(),
+              feedbackEntry.scores.professionalism.toString(),
+              feedbackEntry.flaggedForReview.toString(),
+              strongestArea.area,
+              weakestArea.area
+            ];
+
+            trainingRows.push(row.join(','));
+          } catch (error) {
+            console.error(`Failed to process feedback entry ${feedbackEntry.id} for training:`, error);
           }
         });
       }
@@ -439,10 +649,11 @@ export class AdminExportService {
         `# Exported by: admin_${adminId.slice(-6)}`,
         `# Total conversations: ${conversations.length}`,
         `# Total journal entries: ${journalEntries.length}`,
+        `# Total feedback entries: ${feedback.length}`,
         `# Total training rows: ${trainingRows.length - 1}`,
         `# Filters applied: ${JSON.stringify(filters)}`,
         `# Anonymization: Applied`,
-        `# Data types: conversations${filters.includeJournalData ? ', journal_entries' : ''}`,
+        `# Data types: conversations${filters.includeJournalData ? ', journal_entries' : ''}${filters.includeFeedbackData ? ', feedback_analysis' : ''}`,
         ``,
         ...trainingRows
       ];
@@ -492,6 +703,14 @@ export class AdminExportService {
         lastModified: doc.data().lastModified?.toDate()
       } as JournalEntry));
 
+      // Get all feedback entries
+      const feedbackSnapshot = await getDocs(collection(db, 'ai_feedback'));
+      const feedbackEntries = feedbackSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        analyzedAt: doc.data().analyzedAt?.toDate()
+      } as AIFeedback));
+
       // Calculate basic stats
       const totalConversations = conversations.length;
       const aiConversations = conversations.filter(c => c.type === 'ai').length;
@@ -540,6 +759,30 @@ export class AdminExportService {
       const privateEntries = journalEntries.filter(e => e.isPrivate).length;
       const sharedEntries = journalEntries.filter(e => e.sharedWithCounselors).length;
 
+      // Calculate feedback statistics
+      const totalFeedback = feedbackEntries.length;
+      const averageOverallScore = feedbackEntries.length > 0 
+        ? feedbackEntries.reduce((sum, f) => sum + f.scores.overall, 0) / feedbackEntries.length 
+        : 0;
+      const flaggedForReviewCount = feedbackEntries.filter(f => f.flaggedForReview).length;
+      
+      // Calculate average scores across all feedback
+      const culturalSensitivityAverage = feedbackEntries.length > 0 
+        ? feedbackEntries.reduce((sum, f) => sum + f.scores.culturalSensitivity, 0) / feedbackEntries.length 
+        : 0;
+      const empathyAverage = feedbackEntries.length > 0 
+        ? feedbackEntries.reduce((sum, f) => sum + f.scores.empathy, 0) / feedbackEntries.length 
+        : 0;
+      const professionalismAverage = feedbackEntries.length > 0 
+        ? feedbackEntries.reduce((sum, f) => sum + f.scores.professionalism, 0) / feedbackEntries.length 
+        : 0;
+
+      // Calculate counselor performance average
+      const uniqueCounselorsWithFeedback = new Set(feedbackEntries.map(f => f.counselorId));
+      const counselorPerformanceAverage = feedbackEntries.length > 0 
+        ? feedbackEntries.reduce((sum, f) => sum + f.scores.overall, 0) / feedbackEntries.length 
+        : 0;
+
       return {
         totalConversations,
         totalMessages,
@@ -560,6 +803,15 @@ export class AdminExportService {
           mostCommonEmotions,
           privateEntries,
           sharedEntries
+        },
+        feedbackStatistics: {
+          totalFeedback,
+          averageOverallScore: Math.round(averageOverallScore * 10) / 10,
+          flaggedForReviewCount,
+          counselorPerformanceAverage: Math.round(counselorPerformanceAverage * 10) / 10,
+          culturalSensitivityAverage: Math.round(culturalSensitivityAverage * 10) / 10,
+          empathyAverage: Math.round(empathyAverage * 10) / 10,
+          professionalismAverage: Math.round(professionalismAverage * 10) / 10
         }
       };
     } catch (error: any) {
