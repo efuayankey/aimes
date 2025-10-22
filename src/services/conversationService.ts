@@ -490,4 +490,23 @@ export class ConversationService {
       throw new Error('Failed to close conversation: ' + error.message);
     }
   }
+
+  // Mark conversation as completed by counselor
+  static async markConversationComplete(conversationId: string, counselorId: string): Promise<void> {
+    try {
+      const conversationRef = doc(db, 'conversations', conversationId);
+      
+      await updateDoc(conversationRef, {
+        status: 'completed',
+        completedAt: serverTimestamp(),
+        completedBy: counselorId,
+        updatedAt: serverTimestamp()
+      });
+
+      console.log('Conversation marked as completed');
+    } catch (error: any) {
+      console.error('Failed to mark conversation complete:', error);
+      throw new Error('Failed to mark conversation complete: ' + error.message);
+    }
+  }
 }

@@ -19,6 +19,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { ConversationService } from '../../services/conversationService';
 import { ExportService } from '../../services/exportService';
+import { ConversationOutcomeService } from '../../services/conversationOutcomeService';
 import { Conversation, ConversationMessage } from '../../types';
 import FeedbackInterface from '../counselor/FeedbackInterface';
 
@@ -41,6 +42,10 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<ConversationMessage | null>(null);
   const [feedbackStudentMessage, setFeedbackStudentMessage] = useState<ConversationMessage | null>(null);
+  const [showEndConversationModal, setShowEndConversationModal] = useState(false);
+  const [isEndingConversation, setIsEndingConversation] = useState(false);
+  const [showOutcomeAnalysis, setShowOutcomeAnalysis] = useState(false);
+  const [conversationOutcome, setConversationOutcome] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -156,6 +161,33 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
     } catch (error) {
       console.error('Failed to load export stats:', error);
       alert('Failed to load conversation statistics.');
+    }
+  };
+
+  const handleEndConversation = async () => {
+    if (!user?.uid || user.userType !== 'counselor') return;
+    
+    try {
+      setIsEndingConversation(true);
+      
+      // Run comprehensive conversation analysis
+      const outcome = await ConversationOutcomeService.analyzeCompleteConversation(
+        conversation,
+        messages
+      );
+      
+      // Mark conversation as analyzed (but keep it active)
+      // await ConversationService.markConversationComplete(conversation.id, user.uid);
+      
+      setConversationOutcome(outcome);
+      setShowEndConversationModal(false);
+      setShowOutcomeAnalysis(true);
+      
+    } catch (error) {
+      console.error('Failed to end conversation:', error);
+      alert('Failed to analyze conversation. Please try again.');
+    } finally {
+      setIsEndingConversation(false);
     }
   };
 
@@ -295,6 +327,15 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
           {/* Export menu for counselors */}
           {user?.userType === 'counselor' && conversation.type === 'human' && (
             <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setShowEndConversationModal(true)}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg transition-colors flex items-center space-x-2 text-sm font-medium"
+                title="Analyze conversation quality and student outcomes"
+              >
+                <Brain size={16} />
+                <span>Analyze Conversation</span>
+              </button>
+              
               <button
                 onClick={loadExportStats}
                 className="text-white hover:text-gray-200 transition-colors p-2 rounded-lg hover:bg-white/10"
@@ -498,6 +539,253 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
                     setFeedbackStudentMessage(null);
                   }}
                 />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* End Conversation Confirmation Modal */}
+      {showEndConversationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="bg-blue-100 rounded-full p-2">
+                <Brain className="w-6 h-6 text-blue-600" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">Analyze Conversation</h2>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              Get comprehensive AI feedback on this conversation. This will:
+            </p>
+            
+            <ul className="text-sm text-gray-600 mb-6 space-y-2">
+              <li className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span>Run comprehensive AI analysis of the conversation</span>
+              </li>
+              <li className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span>Analyze student emotional journey and outcomes</span>
+              </li>
+              <li className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span>Generate performance feedback for you</span>
+              </li>
+              <li className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span>Keep the conversation active for continued chatting</span>
+              </li>
+            </ul>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowEndConversationModal(false)}
+                className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEndConversation}
+                disabled={isEndingConversation}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center space-x-2"
+              >
+                {isEndingConversation ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Analyzing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Brain size={16} />
+                    <span>Analyze Now</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Conversation Outcome Analysis Modal */}
+      {showOutcomeAnalysis && conversationOutcome && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center space-x-3">
+                <div className="bg-green-100 rounded-full p-2">
+                  <Brain className="w-6 h-6 text-green-600" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">Conversation Analysis Complete</h2>
+              </div>
+              <button
+                onClick={() => {
+                  setShowOutcomeAnalysis(false);
+                  setConversationOutcome(null);
+                  // Keep the conversation open - don't call onBack()
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="overflow-y-auto max-h-[calc(90vh-80px)] p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Overall Metrics */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Overall Performance</h3>
+                  
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-blue-600">{conversationOutcome.overallEffectiveness}/10</p>
+                      <p className="text-sm text-blue-800">Effectiveness</p>
+                    </div>
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-green-600">{conversationOutcome.studentSatisfactionEstimate}/10</p>
+                      <p className="text-sm text-green-800">Student Satisfaction</p>
+                    </div>
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 text-center">
+                      <p className="text-2xl font-bold text-purple-600">{conversationOutcome.culturalSensitivityScore}/10</p>
+                      <p className="text-sm text-purple-800">Cultural Sensitivity</p>
+                    </div>
+                  </div>
+
+                  {/* Student Journey */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-900 mb-3">Student Emotional Journey</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Starting Distress:</span>
+                        <span className="font-medium">{conversationOutcome.startingState?.emotionalIntensity || 'N/A'}/10</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Resolution Level:</span>
+                        <span className="font-medium">{conversationOutcome.endingState?.resolutionLevel || 'N/A'}/10</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Empowerment:</span>
+                        <span className="font-medium">{conversationOutcome.endingState?.empowermentLevel || 'N/A'}/10</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Likely to Return:</span>
+                        <span className={`font-medium ${conversationOutcome.endingState?.likelyToReturn ? 'text-green-600' : 'text-red-600'}`}>
+                          {conversationOutcome.endingState?.likelyToReturn ? 'Yes' : 'No'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* What Worked Well */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-900">Analysis Summary</h3>
+                  
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-green-900 mb-2">✅ What Worked Well</h4>
+                    <ul className="text-sm text-green-800 space-y-1">
+                      {conversationOutcome.whatWorkedWell?.map((item: string, index: number) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <span className="text-green-500 mt-1">•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h4 className="font-semibold text-yellow-900 mb-2">💡 Areas for Improvement</h4>
+                    <ul className="text-sm text-yellow-800 space-y-1">
+                      {conversationOutcome.areasForImprovement?.map((item: string, index: number) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <span className="text-yellow-500 mt-1">•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {conversationOutcome.culturalConsiderations?.length > 0 && (
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                      <h4 className="font-semibold text-purple-900 mb-2">🌍 Cultural Considerations</h4>
+                      <ul className="text-sm text-purple-800 space-y-1">
+                        {conversationOutcome.culturalConsiderations.map((item: string, index: number) => (
+                          <li key={index} className="flex items-start space-x-2">
+                            <span className="text-purple-500 mt-1">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Detailed Performance Metrics */}
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Detailed Performance Metrics</h3>
+                
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xl font-bold text-gray-800">{conversationOutcome.counselorPerformance?.empathyConsistency || 'N/A'}</p>
+                    <p className="text-xs text-gray-600">Empathy</p>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xl font-bold text-gray-800">{conversationOutcome.counselorPerformance?.culturalAdaptation || 'N/A'}</p>
+                    <p className="text-xs text-gray-600">Cultural Adaptation</p>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xl font-bold text-gray-800">{conversationOutcome.counselorPerformance?.activeListening || 'N/A'}</p>
+                    <p className="text-xs text-gray-600">Active Listening</p>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xl font-bold text-gray-800">{conversationOutcome.counselorPerformance?.questionQuality || 'N/A'}</p>
+                    <p className="text-xs text-gray-600">Question Quality</p>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xl font-bold text-gray-800">{conversationOutcome.counselorPerformance?.appropriateBoundaries || 'N/A'}</p>
+                    <p className="text-xs text-gray-600">Boundaries</p>
+                  </div>
+                  <div className="text-center p-3 bg-gray-50 rounded-lg">
+                    <p className="text-xl font-bold text-gray-800">{conversationOutcome.counselorPerformance?.solutionOrientation || 'N/A'}</p>
+                    <p className="text-xs text-gray-600">Solution Focus</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Items */}
+              {conversationOutcome.endingState?.actionItemsIdentified?.length > 0 && (
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Student Action Items</h3>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <ul className="text-sm text-blue-800 space-y-2">
+                      {conversationOutcome.endingState.actionItemsIdentified.map((item: string, index: number) => (
+                        <li key={index} className="flex items-start space-x-2">
+                          <CheckCircle size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {/* Continue Conversation Button */}
+              <div className="mt-8 pt-6 border-t border-gray-200 text-center">
+                <button
+                  onClick={() => {
+                    setShowOutcomeAnalysis(false);
+                    setConversationOutcome(null);
+                  }}
+                  className="bg-teal-600 hover:bg-teal-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center space-x-2 mx-auto"
+                >
+                  <MessageCircle size={20} />
+                  <span>Continue Conversation</span>
+                </button>
+                <p className="text-sm text-gray-500 mt-2">
+                  You can continue chatting with the student after reviewing this analysis
+                </p>
               </div>
             </div>
           </div>
