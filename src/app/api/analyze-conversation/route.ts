@@ -144,19 +144,22 @@ Provide specific, actionable feedback based on the actual conversation content.
     
     return NextResponse.json({ success: true, analysis });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API analysis failed:', error);
     
-    if (error.name === 'SyntaxError' && error.message?.includes('JSON')) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorName = error instanceof Error ? error.name : '';
+    
+    if (errorName === 'SyntaxError' && errorMessage?.includes('JSON')) {
       console.error('Raw response that failed to parse:', analysisText?.substring(0, 500));
       return NextResponse.json(
-        { error: 'Failed to parse analysis response', details: error.message },
+        { error: 'Failed to parse analysis response', details: errorMessage },
         { status: 500 }
       );
     }
     
     return NextResponse.json(
-      { error: 'Failed to analyze conversation: ' + error.message },
+      { error: 'Failed to analyze conversation: ' + errorMessage },
       { status: 500 }
     );
   }

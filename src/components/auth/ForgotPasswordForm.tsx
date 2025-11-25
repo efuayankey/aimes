@@ -5,12 +5,10 @@ import { useAuth } from '../../contexts/AuthContext';
 
 interface ForgotPasswordFormProps {
   onBack?: () => void;
-  onSuccess?: () => void;
 }
 
 export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
-  onBack,
-  onSuccess
+  onBack
 }) => {
   const { resetPassword, loading, error, clearError } = useAuth();
   const [email, setEmail] = useState('');
@@ -71,7 +69,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
           </h2>
 
           <p className="text-gray-600 mb-6">
-            We've sent a password reset link to:
+            We&apos;ve sent a password reset link to:
           </p>
 
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
@@ -118,7 +116,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Reset Password</h2>
           <p className="text-gray-600">
-            Enter your email address and we'll send you a link to reset your password
+            Enter your email address and we&apos;ll send you a link to reset your password
           </p>
         </div>
 

@@ -1,6 +1,6 @@
 // Login form component
 import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, LogIn, KeyRound } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface LoginFormProps {
@@ -178,7 +178,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         {onSwitchToSignup && (
           <div className="text-center mt-6 pt-6 border-t border-gray-200">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <button
                 onClick={onSwitchToSignup}
                 className="text-teal-600 hover:text-teal-700 font-medium underline"

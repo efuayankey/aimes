@@ -17,6 +17,18 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { AIAnalysisService } from '../../services/aiAnalysisService';
 import { ConversationAnalysisService } from '../../services/conversationAnalysisService';
+import { TrainingSessionService } from '../../services/trainingSessionService';
+import { SimulationSession } from '../../types/SimulatedPatient';
+
+type TrainingStats = {
+  totalSessions: number;
+  totalDuration: number;
+  averageScore: number;
+  culturesExplored: string[];
+  concernsAddressed: string[];
+  recentSessions: SimulationSession[];
+  improvementTrend: 'improving' | 'stable' | 'declining';
+};
 import { 
   collection, 
   getDocs, 
@@ -57,15 +69,20 @@ const CounselorFeedbackDashboard: React.FC<CounselorFeedbackDashboardProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [timeframe, setTimeframe] = useState<'week' | 'month' | 'quarter'>('month');
   const [showDemoData, setShowDemoData] = useState(false);
-  const [currentView, setCurrentView] = useState<'feedback' | 'analytics'>('feedback');
+  const [currentView, setCurrentView] = useState<'feedback' | 'analytics' | 'training'>('feedback');
+  const [trainingStats, setTrainingStats] = useState<TrainingStats | null>(null);
+  const [loadingTraining, setLoadingTraining] = useState(false);
 
   const currentCounselorId = counselorId || user?.uid;
 
   useEffect(() => {
     if (currentCounselorId) {
       loadFeedbackData();
+      if (currentView === 'training') {
+        loadTrainingData();
+      }
     }
-  }, [currentCounselorId, timeframe]);
+  }, [currentCounselorId, timeframe, currentView]);
 
   const loadFeedbackData = async () => {
     if (!currentCounselorId) return;
@@ -339,6 +356,20 @@ const CounselorFeedbackDashboard: React.FC<CounselorFeedbackDashboardProps> = ({
     }
   };
 
+  const loadTrainingData = async () => {
+    if (!currentCounselorId) return;
+    
+    try {
+      setLoadingTraining(true);
+      const stats = await TrainingSessionService.getCounselorTrainingStats(currentCounselorId);
+      setTrainingStats(stats);
+    } catch (error) {
+      console.error('Failed to load training data:', error);
+    } finally {
+      setLoadingTraining(false);
+    }
+  };
+
   const testAIAnalysis = async () => {
     try {
       setIsLoading(true);
@@ -529,6 +560,17 @@ const CounselorFeedbackDashboard: React.FC<CounselorFeedbackDashboardProps> = ({
                   <BarChart3 size={16} />
                   <span>Performance Analytics</span>
                 </button>
+                <button
+                  onClick={() => setCurrentView('training')}
+                  className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors flex items-center space-x-2 ${
+                    currentView === 'training'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Target size={16} />
+                  <span>Training Analytics</span>
+                </button>
               </nav>
             </div>
           </div>
@@ -644,7 +686,7 @@ const CounselorFeedbackDashboard: React.FC<CounselorFeedbackDashboardProps> = ({
                   <div className="p-8 text-center text-gray-500">
                     <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>No feedback available yet</p>
-                    <p className="text-sm">Try the "Test AI Analysis" button above</p>
+                    <p className="text-sm">Try the &quot;Test AI Analysis&quot; button above</p>
                   </div>
                 )}
               </div>
@@ -674,7 +716,7 @@ const CounselorFeedbackDashboard: React.FC<CounselorFeedbackDashboardProps> = ({
           </div>
         </div>
           </>
-        ) : (
+        ) : currentView === 'analytics' ? (
           /* Analytics View */
           <React.Suspense fallback={
             <div className="flex justify-center items-center h-64">
@@ -683,6 +725,171 @@ const CounselorFeedbackDashboard: React.FC<CounselorFeedbackDashboardProps> = ({
           }>
             <CounselorAnalytics showDemoData={showDemoData} />
           </React.Suspense>
+        ) : (
+          /* Training Analytics View */
+          <div className="space-y-6">
+            {loadingTraining ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <span className="ml-3 text-gray-600">Loading training data...</span>
+              </div>
+            ) : trainingStats ? (
+              <>
+                {/* Training Overview Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-blue-200 text-sm font-medium">Total Sessions</p>
+                        <p className="text-3xl font-bold">{trainingStats.totalSessions}</p>
+                      </div>
+                      <Target className="w-8 h-8 text-blue-200" />
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-xl p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-green-200 text-sm font-medium">Training Time</p>
+                        <p className="text-3xl font-bold">{Math.round(trainingStats.totalDuration)}m</p>
+                      </div>
+                      <Clock className="w-8 h-8 text-green-200" />
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-xl p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-purple-200 text-sm font-medium">Average Score</p>
+                        <p className="text-3xl font-bold">{trainingStats.averageScore.toFixed(1)}</p>
+                      </div>
+                      <Award className="w-8 h-8 text-purple-200" />
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-orange-600 to-orange-700 rounded-xl p-6 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-orange-200 text-sm font-medium">Progress</p>
+                        <p className="text-xl font-bold capitalize">{trainingStats.improvementTrend}</p>
+                      </div>
+                      {renderTrendIcon(trainingStats.improvementTrend)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cultural Diversity and Progress */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Cultural Exploration</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-sm text-gray-600 mb-2">Cultures Practiced ({trainingStats.culturesExplored.length})</p>
+                        <div className="flex flex-wrap gap-2">
+                          {trainingStats.culturesExplored.map((culture: string, index: number) => (
+                            <span key={index} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {culture}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm text-gray-600 mb-2">Mental Health Concerns ({trainingStats.concernsAddressed.length})</p>
+                        <div className="flex flex-wrap gap-2">
+                          {trainingStats.concernsAddressed.map((concern: string, index: number) => (
+                            <span key={index} className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              {concern}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Training Sessions</h3>
+                    <div className="space-y-3">
+                      {trainingStats.recentSessions.slice(0, 3).map((session: SimulationSession, index: number) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {session.simulatedPatient?.gender} • {session.simulatedPatient?.culturalBackground}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {session.simulatedPatient?.mentalHealthConcern}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-gray-600">{session.sessionStarted.toLocaleDateString()}</p>
+                            {session.sessionDuration && (
+                              <p className="text-xs text-gray-500">{Math.round(session.sessionDuration)}m</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress Insights */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Training Insights</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Users className="w-8 h-8 text-blue-600" />
+                      </div>
+                      <h4 className="font-medium text-gray-900 mb-1">Cultural Competency</h4>
+                      <p className="text-sm text-gray-600">
+                        {trainingStats.culturesExplored.length > 5 
+                          ? "Excellent cultural diversity in training" 
+                          : "Consider exploring more cultural backgrounds"}
+                      </p>
+                    </div>
+                    
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <TrendingUp className="w-8 h-8 text-green-600" />
+                      </div>
+                      <h4 className="font-medium text-gray-900 mb-1">Performance Trend</h4>
+                      <p className="text-sm text-gray-600">
+                        {trainingStats.improvementTrend === 'improving' 
+                          ? "Great progress! Keep up the excellent work" 
+                          : trainingStats.improvementTrend === 'stable'
+                          ? "Consistent performance, try new scenarios"
+                          : "Focus on reviewing feedback for improvement"}
+                      </p>
+                    </div>
+
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Clock className="w-8 h-8 text-orange-600" />
+                      </div>
+                      <h4 className="font-medium text-gray-900 mb-1">Training Volume</h4>
+                      <p className="text-sm text-gray-600">
+                        {trainingStats.totalSessions > 10 
+                          ? "Excellent training commitment" 
+                          : "More practice sessions recommended"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-12">
+                <Target className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-medium text-gray-900 mb-2">No Training Data</h3>
+                <p className="text-gray-600 mb-4">Complete some simulated patient training sessions to see analytics</p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Refresh Data
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>

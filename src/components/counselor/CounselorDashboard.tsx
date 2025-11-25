@@ -7,26 +7,24 @@ import {
   AlertCircle, 
   CheckCircle,
   User,
-  Calendar,
   Globe,
   ArrowRight,
-  Filter,
   LogOut,
-  Send,
-  X,
   Download,
   BarChart3,
-  Target
+  GraduationCap
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { MessageService } from '../../services/messageService';
 import { ConversationService } from '../../services/conversationService';
 import { ExportService } from '../../services/exportService';
-import { Message, MessagePriority, Conversation, ConversationMessage } from '../../types';
+import { MessagePriority, Conversation } from '../../types';
 import ContinuousChat from '../chat/ContinuousChatInterface';
 
-// Lazy load the feedback dashboard
+// Lazy load the feedback dashboard and training components
 const CounselorFeedbackDashboard = React.lazy(() => import('../feedback/CounselorFeedbackDashboard'));
+const PatientModeSelector = React.lazy(() => import('./PatientModeSelector').then(module => ({ default: module.PatientModeSelector })));
+const SimulatedSessionInterface = React.lazy(() => import('./SimulatedSessionInterface').then(module => ({ default: module.SimulatedSessionInterface })));
+const TrainingHistoryView = React.lazy(() => import('./TrainingHistoryView').then(module => ({ default: module.TrainingHistoryView })));
 
 interface ConversationQueueProps {
   conversations: Conversation[];
@@ -158,7 +156,8 @@ const CounselorDashboard: React.FC = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [activeTab, setActiveTab] = useState<'new' | 'mine'>('new');
   const [myUnreadCount, setMyUnreadCount] = useState(0);
-  const [currentView, setCurrentView] = useState<'queue' | 'feedback'>('queue');
+  const [currentView, setCurrentView] = useState<'queue' | 'training' | 'feedback' | 'history'>('queue');
+  const [patientMode, setPatientMode] = useState<'real' | 'simulated'>('real');
   const [stats, setStats] = useState({
     total: 0,
     urgent: 0,
@@ -265,14 +264,14 @@ const CounselorDashboard: React.FC = () => {
                 Counselor Dashboard
               </h1>
               <p className="text-gray-600">
-                Welcome back, {user?.firstName || user?.profile?.firstName}. Manage student support requests below.
+                Welcome back, {user?.profile?.firstName || 'Counselor'}. Manage student support requests below.
               </p>
             </div>
             
             <div className="flex items-center space-x-4">
               <select
                 value={filter}
-                onChange={(e) => setFilter(e.target.value as any)}
+                onChange={(e) => setFilter(e.target.value as 'all' | MessagePriority)}
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="all">All Messages</option>
@@ -353,6 +352,20 @@ const CounselorDashboard: React.FC = () => {
                   <span>Message Queue</span>
                 </button>
                 <button
+                  onClick={() => setCurrentView('training')}
+                  className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors flex items-center space-x-2 ${
+                    currentView === 'training'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <GraduationCap size={16} />
+                  <span>Training Mode</span>
+                  <span className="ml-1 px-2 py-1 text-xs bg-orange-100 text-orange-600 rounded-full">
+                    NEW
+                  </span>
+                </button>
+                <button
                   onClick={() => setCurrentView('feedback')}
                   className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors flex items-center space-x-2 ${
                     currentView === 'feedback'
@@ -362,6 +375,17 @@ const CounselorDashboard: React.FC = () => {
                 >
                   <BarChart3 size={16} />
                   <span>Performance & Feedback</span>
+                </button>
+                <button
+                  onClick={() => setCurrentView('history')}
+                  className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors flex items-center space-x-2 ${
+                    currentView === 'history'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <GraduationCap size={16} />
+                  <span>Training History</span>
                 </button>
               </nav>
             </div>
@@ -460,7 +484,52 @@ const CounselorDashboard: React.FC = () => {
               )}
             </div>
           </div>
-        ) : (
+        ) : currentView === 'training' ? (
+          /* Training Mode */
+          <div className="space-y-6">
+            <React.Suspense fallback={
+              <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              </div>
+            }>
+              <PatientModeSelector
+                currentMode={patientMode}
+                onModeChange={setPatientMode}
+                onViewPatientQueue={() => setCurrentView('queue')}
+              />
+              
+              {patientMode === 'simulated' ? (
+                <SimulatedSessionInterface 
+                  onSessionComplete={(session) => {
+                    console.log('Training session completed:', session);
+                    // Could add session tracking here
+                  }}
+                  onSessionAnalysisReady={(analysis) => {
+                    console.log('Training session analysis ready:', analysis);
+                    // Could show analysis modal here
+                  }}
+                />
+              ) : (
+                /* Real patients in training mode - redirect to queue */
+                <div className="bg-white rounded-lg border border-gray-200 p-6">
+                  <div className="text-center py-8">
+                    <Users className="w-12 h-12 text-teal-600 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">Real Patient Mode</h3>
+                    <p className="text-gray-600 mb-4">
+                      You&apos;ve selected real patients. Switch to the Message Queue to view and respond to actual student conversations.
+                    </p>
+                    <button
+                      onClick={() => setCurrentView('queue')}
+                      className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                    >
+                      Go to Message Queue
+                    </button>
+                  </div>
+                </div>
+              )}
+            </React.Suspense>
+          </div>
+        ) : currentView === 'feedback' ? (
           /* Feedback Dashboard */
           <React.Suspense fallback={
             <div className="flex justify-center items-center h-64">
@@ -468,6 +537,15 @@ const CounselorDashboard: React.FC = () => {
             </div>
           }>
             <CounselorFeedbackDashboard />
+          </React.Suspense>
+        ) : (
+          /* Training History */
+          <React.Suspense fallback={
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+          }>
+            <TrainingHistoryView counselorId={user!.uid} />
           </React.Suspense>
         )}
       </div>

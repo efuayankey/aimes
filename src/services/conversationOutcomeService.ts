@@ -107,7 +107,7 @@ export class ConversationOutcomeService {
       console.log('Conversation analysis completed successfully');
       return outcome;
       
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('Failed to analyze conversation:', error);
       throw new Error('Conversation analysis failed: ' + error.message);
     }
@@ -155,7 +155,7 @@ export class ConversationOutcomeService {
       
       return data.analysis;
       
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('AI analysis failed:', error);
       throw new Error('Failed to generate conversation analysis: ' + error.message);
     }
@@ -168,7 +168,7 @@ export class ConversationOutcomeService {
         ...outcome,
         analyzedAt: Timestamp.fromDate(outcome.analyzedAt)
       });
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('Failed to save conversation outcome:', error);
       throw new Error('Failed to save analysis: ' + error.message);
     }
@@ -189,7 +189,7 @@ export class ConversationOutcomeService {
         analyzedAt: doc.data().analyzedAt?.toDate()
       } as ConversationOutcome));
       
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('Failed to get counselor outcomes:', error);
       throw new Error('Failed to retrieve conversation outcomes: ' + error.message);
     }
@@ -234,7 +234,7 @@ export class ConversationOutcomeService {
         recentFeedback: filteredOutcomes.slice(0, 5)
       };
       
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('Failed to calculate performance metrics:', error);
       throw new Error('Failed to calculate performance metrics: ' + error.message);
     }
@@ -246,7 +246,7 @@ export class ConversationOutcomeService {
     
     const values = outcomes.map(outcome => {
       if (typeof accessor === 'string') {
-        return (outcome as any)[accessor];
+        return (outcome as Record<string, unknown>)[accessor];
       } else {
         return accessor(outcome);
       }

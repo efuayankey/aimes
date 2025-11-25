@@ -1,6 +1,6 @@
 // User type selection component for registration
 import React from 'react';
-import { GraduationCap, Heart, CheckCircle, Shield } from 'lucide-react';
+import { GraduationCap, Heart, CheckCircle } from 'lucide-react';
 import { UserType } from '../../types';
 
 interface UserTypeSelectorProps {
@@ -52,7 +52,7 @@ export const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
           Choose Your Role
         </h2>
         <p className="text-gray-600">
-          Select how you'd like to use AIMES to get personalized features
+          Select how you&apos;d like to use AIMES to get personalized features
         </p>
       </div>
 
@@ -116,7 +116,7 @@ export const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
       {selectedType && (
         <div className="text-center mt-6 p-4 bg-teal-50 rounded-lg">
           <p className="text-teal-800 font-medium">
-            Great choice! You've selected the {selectedType} role.
+            Great choice! You&apos;ve selected the {selectedType} role.
           </p>
           <p className="text-teal-600 text-sm mt-1">
             {selectedType === 'counselor' 

@@ -1,15 +1,12 @@
 // Conversation list component for managing multiple chats
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   MessageCircle, 
-  Plus, 
   Bot, 
   User, 
   Clock,
   Circle,
-  CheckCircle2,
-  Search,
-  Filter
+  Search
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ConversationService } from '../../services/conversationService';
@@ -30,13 +27,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState<'all' | 'ai' | 'human'>('all');
 
-  useEffect(() => {
-    if (user?.uid) {
-      loadConversations();
-    }
-  }, [user?.uid]);
-
-  const loadConversations = async () => {
+  const loadConversations = useCallback(async () => {
     if (!user?.uid) return;
     
     try {
@@ -48,7 +39,13 @@ const ConversationList: React.FC<ConversationListProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user?.uid]);
+
+  useEffect(() => {
+    if (user?.uid) {
+      loadConversations();
+    }
+  }, [user?.uid, loadConversations]);
 
   const filteredConversations = conversations.filter(conversation => {
     const matchesSearch = conversation.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -119,7 +116,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
             </div>
             <select
               value={filter}
-              onChange={(e) => setFilter(e.target.value as any)}
+              onChange={(e) => setFilter(e.target.value as 'all' | 'ai' | 'human')}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
             >
               <option value="all">All Conversations</option>

@@ -220,9 +220,9 @@ export class OpenAIService {
         model: data.model,
         usage: data.usage
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('OpenAI API error:', error);
-      throw new Error('Failed to generate AI response: ' + error.message);
+      throw new Error('Failed to generate AI response: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 
@@ -312,7 +312,7 @@ export class OpenAIService {
         analyzedAt: new Date(),
         feedbackVersion: '1.0'
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to analyze counselor response:', error);
       // Return default feedback if analysis fails
       return {

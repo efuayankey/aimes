@@ -48,7 +48,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
   } | null>(null);
 
   // Update form data
-  const updateFormData = (field: keyof FormData, value: any) => {
+  const updateFormData = (field: keyof FormData, value: string | UserType | boolean | null) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear field-specific errors
     if (formErrors[field]) {
@@ -143,7 +143,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
       });
       setCurrentStep('confirmation');
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Signup error:', error);
       // Error is handled by the auth context
     }
@@ -277,7 +277,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
           <div className="space-y-6">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Tell Us About Yourself</h2>
-              <p className="text-gray-600">We'll use this information to personalize your experience</p>
+              <p className="text-gray-600">We&apos;ll use this information to personalize your experience</p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
@@ -382,19 +382,19 @@ export const SignupForm: React.FC<SignupFormProps> = ({
                 {registrationResult.needsEmailVerification ? (
                   <div className="space-y-4">
                     <p className="text-gray-600">
-                      We've sent a verification email to <strong>{formData.email}</strong>
+                      We&apos;ve sent a verification email to <strong>{formData.email}</strong>
                     </p>
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                       <p className="text-yellow-800 text-sm">
                         Please check your email and click the verification link to activate your account.
-                        You won't be able to access AIMES until you verify your email.
+                        You won&apos;t be able to access AIMES until you verify your email.
                       </p>
                     </div>
                     <button
                       onClick={() => window.location.reload()}
                       className="bg-teal-600 text-white px-6 py-3 rounded-lg hover:bg-teal-700 transition-colors"
                     >
-                      I've Verified My Email
+                      I&apos;ve Verified My Email
                     </button>
                   </div>
                 ) : (

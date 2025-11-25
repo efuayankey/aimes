@@ -156,9 +156,10 @@ export class AdminExportService {
       }
 
       return feedback;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Failed to get feedback entries:', error);
-      throw new Error('Failed to retrieve feedback entries: ' + error.message);
+      throw new Error('Failed to retrieve feedback entries: ' + errorMessage);
     }
   }
 
@@ -185,7 +186,7 @@ export class AdminExportService {
       }
 
       const snapshot = await getDocs(q);
-      let entries = snapshot.docs.map(doc => ({
+      const entries = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         timestamp: doc.data().timestamp?.toDate(),
@@ -199,9 +200,10 @@ export class AdminExportService {
       }
 
       return entries;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Failed to get journal entries:', error);
-      throw new Error('Failed to retrieve journal entries: ' + error.message);
+      throw new Error('Failed to retrieve journal entries: ' + errorMessage);
     }
   }
 
@@ -264,9 +266,10 @@ export class AdminExportService {
       }
 
       return conversations;
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Failed to get all conversations:', error);
-      throw new Error('Failed to retrieve conversations: ' + error.message);
+      throw new Error('Failed to retrieve conversations: ' + errorMessage);
     }
   }
 
@@ -446,9 +449,10 @@ export class AdminExportService {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Failed to export platform data:', error);
-      throw new Error('Failed to export platform data: ' + error.message);
+      throw new Error('Failed to export platform data: ' + errorMessage);
     }
   }
 
@@ -671,9 +675,10 @@ export class AdminExportService {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Failed to export training data:', error);
-      throw new Error('Failed to export training data: ' + error.message);
+      throw new Error('Failed to export training data: ' + errorMessage);
     }
   }
 
@@ -814,9 +819,10 @@ export class AdminExportService {
           professionalismAverage: Math.round(professionalismAverage * 10) / 10
         }
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Failed to get platform statistics:', error);
-      throw new Error('Failed to get platform statistics: ' + error.message);
+      throw new Error('Failed to get platform statistics: ' + errorMessage);
     }
   }
 

@@ -1,11 +1,10 @@
 // Continuous chat interface for real-time conversations
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Send, 
   MessageCircle, 
   User, 
   Bot, 
-  Clock, 
   CheckCircle,
   Circle,
   MoreVertical,
@@ -19,7 +18,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { ConversationService } from '../../services/conversationService';
 import { ExportService } from '../../services/exportService';
-import { ConversationOutcomeService } from '../../services/conversationOutcomeService';
+import { ConversationOutcomeService, ConversationOutcome } from '../../services/conversationOutcomeService';
 import { Conversation, ConversationMessage } from '../../types';
 import FeedbackInterface from '../counselor/FeedbackInterface';
 
@@ -37,7 +36,15 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
   const [isSending, setIsSending] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showExportStats, setShowExportStats] = useState(false);
-  const [exportStats, setExportStats] = useState<any>(null);
+  const [exportStats, setExportStats] = useState<{
+    messageCount: number;
+    studentMessages: number;
+    counselorMessages: number;
+    aiMessages: number;
+    totalCharacters: number;
+    averageMessageLength: number;
+    conversationDuration: string;
+  } | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<ConversationMessage | null>(null);
@@ -45,8 +52,25 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
   const [showEndConversationModal, setShowEndConversationModal] = useState(false);
   const [isEndingConversation, setIsEndingConversation] = useState(false);
   const [showOutcomeAnalysis, setShowOutcomeAnalysis] = useState(false);
-  const [conversationOutcome, setConversationOutcome] = useState<any>(null);
+  const [conversationOutcome, setConversationOutcome] = useState<ConversationOutcome | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const loadMessages = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const conversationMessages = await ConversationService.getConversationMessages(conversation.id);
+      setMessages(conversationMessages);
+      
+      // Mark as read
+      if (user?.uid) {
+        await ConversationService.markMessagesAsRead(conversation.id, user.uid);
+      }
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [conversation.id, user?.uid]);
 
   useEffect(() => {
     loadMessages();
@@ -70,24 +94,7 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
     );
 
     return () => unsubscribe();
-  }, [conversation.id, user?.uid]);
-
-  const loadMessages = async () => {
-    try {
-      setIsLoading(true);
-      const conversationMessages = await ConversationService.getConversationMessages(conversation.id);
-      setMessages(conversationMessages);
-      
-      // Mark as read
-      if (user?.uid) {
-        await ConversationService.markMessagesAsRead(conversation.id, user.uid);
-      }
-    } catch (error) {
-      console.error('Failed to load messages:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [conversation.id, user?.uid, loadMessages, onUnreadCountChange]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -226,7 +233,7 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
           }`}>
             {isCurrentUser ? (
               <span className="text-white font-medium text-sm">
-                {(user?.firstName || user?.profile?.firstName)?.charAt(0) || 'U'}
+                {user?.profile?.firstName?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || 'U'}
               </span>
             ) : message.senderType === 'ai' ? (
               <Bot size={16} className="text-white" />
@@ -390,7 +397,7 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
             <MessageCircle size={48} className="mx-auto text-gray-400 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">Start your conversation</h3>
             <p className="text-gray-600">
-              Share what's on your mind. This is a safe, {conversation.isAnonymous ? 'anonymous' : 'confidential'} space.
+              Share what&apos;s on your mind. This is a safe, {conversation.isAnonymous ? 'anonymous' : 'confidential'} space.
             </p>
           </div>
         ) : (
@@ -460,23 +467,23 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Student Messages:</span>
-                  <span className="font-medium">{exportStats.studentMessages}</span>
+                  <span className="font-medium text-gray-900">{exportStats.studentMessages}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Counselor Messages:</span>
-                  <span className="font-medium">{exportStats.counselorMessages}</span>
+                  <span className="font-medium text-gray-900">{exportStats.counselorMessages}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">AI Messages:</span>
-                  <span className="font-medium">{exportStats.aiMessages}</span>
+                  <span className="font-medium text-gray-900">{exportStats.aiMessages}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total Characters:</span>
-                  <span className="font-medium">{exportStats.totalCharacters.toLocaleString()}</span>
+                  <span className="font-medium text-gray-900">{exportStats.totalCharacters.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Avg Message Length:</span>
-                  <span className="font-medium">{exportStats.averageMessageLength} chars</span>
+                  <span className="font-medium text-gray-900">{exportStats.averageMessageLength} chars</span>
                 </div>
               </div>
               
@@ -658,15 +665,15 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">Starting Distress:</span>
-                        <span className="font-medium">{conversationOutcome.startingState?.emotionalIntensity || 'N/A'}/10</span>
+                        <span className="font-medium text-gray-900">{conversationOutcome.startingState?.emotionalIntensity || 'N/A'}/10</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">Resolution Level:</span>
-                        <span className="font-medium">{conversationOutcome.endingState?.resolutionLevel || 'N/A'}/10</span>
+                        <span className="font-medium text-gray-900">{conversationOutcome.endingState?.resolutionLevel || 'N/A'}/10</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">Empowerment:</span>
-                        <span className="font-medium">{conversationOutcome.endingState?.empowermentLevel || 'N/A'}/10</span>
+                        <span className="font-medium text-gray-900">{conversationOutcome.endingState?.empowermentLevel || 'N/A'}/10</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600">Likely to Return:</span>

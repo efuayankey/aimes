@@ -2,19 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import {
   Download,
-  BarChart3,
   Users,
   MessageSquare,
-  Bot,
-  User,
-  Calendar,
-  Filter,
-  FileText,
   Database,
   Activity,
   TrendingUp,
   Globe,
-  Clock,
   Target,
   RefreshCw,
   BookOpen,
@@ -80,7 +73,7 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const updateFilter = (key: keyof AdminExportFilters, value: any) => {
+  const updateFilter = (key: keyof AdminExportFilters, value: string | Date | CulturalBackground | 'all' | number | boolean) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
@@ -314,7 +307,7 @@ const AdminDashboard: React.FC = () => {
                   <input
                     type="date"
                     value={filters.dateFrom ? filters.dateFrom.toISOString().split('T')[0] : ''}
-                    onChange={(e) => updateFilter('dateFrom', e.target.value ? new Date(e.target.value) : undefined)}
+                    onChange={(e) => updateFilter('dateFrom', e.target.value ? new Date(e.target.value) : '')}
                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -324,7 +317,7 @@ const AdminDashboard: React.FC = () => {
                   <input
                     type="date"
                     value={filters.dateTo ? filters.dateTo.toISOString().split('T')[0] : ''}
-                    onChange={(e) => updateFilter('dateTo', e.target.value ? new Date(e.target.value) : undefined)}
+                    onChange={(e) => updateFilter('dateTo', e.target.value ? new Date(e.target.value) : '')}
                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -366,7 +359,7 @@ const AdminDashboard: React.FC = () => {
                     type="number"
                     min="1"
                     value={filters.minMessages}
-                    onChange={(e) => updateFilter('minMessages', parseInt(e.target.value))}
+                    onChange={(e) => updateFilter('minMessages', e.target.value)}
                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -379,7 +372,7 @@ const AdminDashboard: React.FC = () => {
                     min="1"
                     max="10000"
                     value={filters.maxResults}
-                    onChange={(e) => updateFilter('maxResults', parseInt(e.target.value))}
+                    onChange={(e) => updateFilter('maxResults', e.target.value)}
                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
@@ -442,7 +435,7 @@ const AdminDashboard: React.FC = () => {
             <div className="bg-white rounded-lg p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Conversations by Culture</h3>
               <div className="space-y-3">
-                {stats.conversationsByCulture.slice(0, 6).map((item, index) => (
+                {stats.conversationsByCulture.slice(0, 6).map((item) => (
                   <div key={item.culture} className="flex items-center justify-between">
                     <span className="text-sm text-gray-700 capitalize">
                       {item.culture.replace('-', ' ')}
@@ -469,7 +462,7 @@ const AdminDashboard: React.FC = () => {
             <div className="bg-white rounded-lg p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Popular Topics</h3>
               <div className="space-y-3">
-                {stats.popularTopics.slice(0, 6).map((item, index) => (
+                {stats.popularTopics.slice(0, 6).map((item) => (
                   <div key={item.topic} className="flex items-center justify-between">
                     <span className="text-sm text-gray-700 capitalize">
                       {item.topic}

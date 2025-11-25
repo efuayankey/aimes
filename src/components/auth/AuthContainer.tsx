@@ -41,7 +41,6 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({ onAuthSuccess }) =
         return (
           <ForgotPasswordForm
             onBack={() => setCurrentView('login')}
-            onSuccess={handleAuthSuccess}
           />
         );
       

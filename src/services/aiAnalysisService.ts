@@ -61,9 +61,10 @@ export class AIAnalysisService {
         flaggedForReview: this.shouldFlagForReview(parsedResult.scores),
         trainingDataQuality: this.assessTrainingDataQuality(parsedResult.scores, context)
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Failed to analyze counselor response:', error);
-      throw new Error('AI analysis failed: ' + error.message);
+      throw new Error('AI analysis failed: ' + errorMessage);
     }
   }
 
@@ -225,7 +226,7 @@ Be thorough, fair, and focused on helping counselors improve their cultural comp
   }
 
   // Validate individual scores
-  private static validateScore(score: any): number {
+  private static validateScore(score: unknown): number {
     const num = parseFloat(score);
     if (isNaN(num) || num < 1 || num > 10) {
       console.warn('Invalid score detected, using fallback:', score);

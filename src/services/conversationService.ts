@@ -67,8 +67,9 @@ export class ConversationService {
       });
 
       return docRef.id;
-    } catch (error: any) {
-      throw new Error('Failed to create conversation: ' + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error('Failed to create conversation: ' + errorMessage);
     }
   }
 
@@ -121,9 +122,10 @@ export class ConversationService {
       }
 
       return messageRef.id;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to send message:', error);
-      throw new Error('Failed to send message: ' + error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error('Failed to send message: ' + errorMessage);
     }
   }
 
@@ -143,8 +145,9 @@ export class ConversationService {
         updatedAt: conversationDoc.data().updatedAt?.toDate(),
         lastMessageAt: conversationDoc.data().lastMessageAt?.toDate()
       } as Conversation;
-    } catch (error: any) {
-      throw new Error('Failed to get conversation: ' + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error('Failed to get conversation: ' + errorMessage);
     }
   }
 
@@ -170,9 +173,10 @@ export class ConversationService {
 
       // Sort by timestamp
       return messages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error in getConversationMessages:', error);
-      throw new Error('Failed to get conversation messages: ' + error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error('Failed to get conversation messages: ' + errorMessage);
     }
   }
 
@@ -195,8 +199,9 @@ export class ConversationService {
 
       // Sort by last message time
       return conversations.sort((a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime());
-    } catch (error: any) {
-      throw new Error('Failed to get student conversations: ' + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error('Failed to get student conversations: ' + errorMessage);
     }
   }
 
@@ -221,8 +226,9 @@ export class ConversationService {
 
       // Filter out conversations that already have a counselor assigned
       return allConversations.filter(conv => !conv.counselorId);
-    } catch (error: any) {
-      throw new Error('Failed to get available conversations: ' + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error('Failed to get available conversations: ' + errorMessage);
     }
   }
 
@@ -243,8 +249,9 @@ export class ConversationService {
         updatedAt: doc.data().updatedAt?.toDate(),
         lastMessageAt: doc.data().lastMessageAt?.toDate()
       } as Conversation));
-    } catch (error: any) {
-      throw new Error('Failed to get counselor conversations: ' + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error('Failed to get counselor conversations: ' + errorMessage);
     }
   }
 
@@ -282,8 +289,9 @@ export class ConversationService {
       }
 
       return totalUnreadCount;
-    } catch (error: any) {
-      throw new Error('Failed to get counselor unread count: ' + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error('Failed to get counselor unread count: ' + errorMessage);
     }
   }
 
@@ -312,8 +320,9 @@ export class ConversationService {
       });
 
       await batch.commit();
-    } catch (error: any) {
-      throw new Error('Failed to claim conversation: ' + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error('Failed to claim conversation: ' + errorMessage);
     }
   }
 
@@ -353,8 +362,9 @@ export class ConversationService {
       });
 
       await batch.commit();
-    } catch (error: any) {
-      throw new Error('Failed to mark messages as read: ' + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error('Failed to mark messages as read: ' + errorMessage);
     }
   }
 
@@ -417,7 +427,7 @@ export class ConversationService {
   private static async sendAIMessage(
     conversationId: string,
     content: string,
-    aiMetadata?: any
+    aiMetadata?: { model?: string; usage?: { prompt_tokens?: number; completion_tokens?: number } }
   ): Promise<void> {
     const messageData: Omit<ConversationMessage, 'id'> = {
       conversationId,
@@ -474,8 +484,9 @@ export class ConversationService {
       }
 
       return totalUnreadCount;
-    } catch (error: any) {
-      throw new Error('Failed to get unread message count: ' + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error('Failed to get unread message count: ' + errorMessage);
     }
   }
 
@@ -486,8 +497,9 @@ export class ConversationService {
         status: 'closed',
         updatedAt: new Date()
       });
-    } catch (error: any) {
-      throw new Error('Failed to close conversation: ' + error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error('Failed to close conversation: ' + errorMessage);
     }
   }
 
@@ -504,9 +516,10 @@ export class ConversationService {
       });
 
       console.log('Conversation marked as completed');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to mark conversation complete:', error);
-      throw new Error('Failed to mark conversation complete: ' + error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error('Failed to mark conversation complete: ' + errorMessage);
     }
   }
 }

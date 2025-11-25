@@ -114,7 +114,7 @@ export interface ChatContextType {
   deleteMessage: (messageId: string) => Promise<void>;
   
   // AI interactions
-  sendToAI: (message: string, context?: any) => Promise<void>;
+  sendToAI: (message: string, context?: {conversationHistory?: SessionMessage[]; culturalBackground?: CulturalBackground; metadata?: Record<string, unknown>}) => Promise<void>;
   
   // Cultural context
   updateCulturalBackground: (background: CulturalBackground) => Promise<void>;

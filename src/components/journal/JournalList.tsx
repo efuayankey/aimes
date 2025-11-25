@@ -284,7 +284,7 @@ const JournalList: React.FC<JournalListProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">Sort by</label>
               <select
                 value={filters.sortBy}
-                onChange={(e) => setFilters(prev => ({ ...prev, sortBy: e.target.value as any }))}
+                onChange={(e) => setFilters(prev => ({ ...prev, sortBy: e.target.value as 'date' | 'mood' | 'title' }))}
                 className="w-full p-2 border border-gray-300 rounded-lg"
               >
                 <option value="date">Date</option>
@@ -296,7 +296,7 @@ const JournalList: React.FC<JournalListProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-2">Order</label>
               <select
                 value={filters.sortOrder}
-                onChange={(e) => setFilters(prev => ({ ...prev, sortOrder: e.target.value as any }))}
+                onChange={(e) => setFilters(prev => ({ ...prev, sortOrder: e.target.value as 'asc' | 'desc' }))}
                 className="w-full p-2 border border-gray-300 rounded-lg"
               >
                 <option value="desc">Newest first</option>

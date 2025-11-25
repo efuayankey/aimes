@@ -60,7 +60,7 @@ export class ConversationAnalysisService {
         flaggedForReview: this.shouldFlagConversationForReview(parsedResult.overallPerformance),
         trainingDataQuality: this.assessConversationTrainingDataQuality(parsedResult.overallPerformance, context)
       };
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('Failed to analyze conversation:', error);
       throw new Error('Conversation analysis failed: ' + error.message);
     }
@@ -258,7 +258,7 @@ Be thorough, fair, and focused on helping counselors improve their cultural comp
   }
 
   // Validate individual scores
-  private static validateScore(score: any): number {
+  private static validateScore(score: unknown): number {
     const num = parseFloat(score);
     if (isNaN(num) || num < 1 || num > 10) {
       console.warn('Invalid score detected, using fallback:', score);

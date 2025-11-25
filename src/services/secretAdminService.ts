@@ -1,6 +1,5 @@
 // Secret admin access service - completely hidden from public
 import { ENV } from '../config/env';
-import { AuthService } from './authService';
 import { User, AdminProfile } from '../types';
 import { 
   collection, 
@@ -185,7 +184,7 @@ export class SecretAdminService {
     if (process.env.NODE_ENV === 'production') {
       // Override console methods for admin operations
       const originalLog = console.log;
-      console.log = (...args: any[]) => {
+      console.log = (...args: unknown[]) => {
         const message = args.join(' ');
         if (!message.includes('SECRET') && !message.includes('admin')) {
           originalLog(...args);

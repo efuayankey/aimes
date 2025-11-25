@@ -1,6 +1,6 @@
 // Modal for starting new conversations
 import React, { useState } from 'react';
-import { X, Bot, User, AlertCircle, Lock, Globe } from 'lucide-react';
+import { X, Bot, User, Lock } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ConversationService } from '../../services/conversationService';
 import { MessagePriority } from '../../types';
@@ -38,7 +38,7 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
         user.uid,
         conversationType,
         title.trim(),
-        user.studentProfile?.culturalBackground || 'general',
+        user.studentProfile?.culturalBackground || 'other',
         isAnonymous,
         priority
       );
@@ -150,7 +150,7 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
             <textarea
               value={firstMessage}
               onChange={(e) => setFirstMessage(e.target.value)}
-              placeholder="Share what's on your mind. Be as detailed as you'd like..."
+              placeholder="Share what&apos;s on your mind. Be as detailed as you&apos;d like..."
               className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               rows={4}
               maxLength={1000}
@@ -201,7 +201,7 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
                 <span className="text-sm font-medium text-gray-700">Anonymous conversation</span>
               </label>
               <p className="text-xs text-gray-500 mt-1 ml-6">
-                Your name and profile won't be shared with the counselor
+                Your name and profile won&apos;t be shared with the counselor
               </p>
             </div>
           </div>

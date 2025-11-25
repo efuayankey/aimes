@@ -4,6 +4,7 @@ import { MessageCircle, BookOpen, Brain, Settings, LogOut, Sparkles, Menu, X, Lo
 import { useAuth } from '../../contexts/AuthContext';
 import { MessageService } from '../../services/messageService';
 import { ConversationService } from '../../services/conversationService';
+import { Message, Response } from '../../types/Message';
 
 // Placeholder components - we'll build these
 const ChatInterface = React.lazy(() => import('./ChatInterface'));
@@ -15,7 +16,7 @@ type StudentView = 'dashboard' | 'chat' | 'messages' | 'journal' | 'mindfulness'
 // Message History Component
 const MessageHistory: React.FC<{ onUnreadCountChange?: () => void }> = ({ onUnreadCountChange }) => {
   const { user } = useAuth();
-  const [conversations, setConversations] = useState<{ message: any; responses: any[] }[]>([]);
+  const [conversations, setConversations] = useState<{ message: Message; responses: Response[] }[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'ai' | 'human'>('all');
   const [counts, setCounts] = useState({ all: 0, ai: 0, human: 0 });
@@ -106,7 +107,7 @@ const MessageHistory: React.FC<{ onUnreadCountChange?: () => void }> = ({ onUnre
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as 'all' | 'ai' | 'human')}
                 className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === tab.id
                     ? 'border-teal-500 text-teal-600'
@@ -345,9 +346,9 @@ const StudentDashboard: React.FC = () => {
           <div className="flex-1">
             <div className="font-medium flex items-center justify-between">
               <span>{item.label}</span>
-              {(item as any).badge && (
+              {'badge' in item && item.badge && (
                 <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] h-5 flex items-center justify-center">
-                  {(item as any).badge}
+                  {item.badge}
                 </span>
               )}
             </div>
@@ -447,7 +448,7 @@ const StudentDashboard: React.FC = () => {
             </div>
           </div>
           <p className="text-gray-600 text-sm mb-4">
-            Track your moods, reflect on your experiences, and share insights with counselors when you're ready.
+            Track your moods, reflect on your experiences, and share insights with counselors when you&apos;re ready.
           </p>
           <div className="flex items-center text-purple-600 text-sm font-medium">
             <span>Write entry</span>

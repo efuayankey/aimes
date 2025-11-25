@@ -9,7 +9,7 @@ interface SecretAdminLoginProps {
 }
 
 const SecretAdminLogin: React.FC<SecretAdminLoginProps> = ({ onAdminAuthenticated }) => {
-  const { user, setUser } = useAuth();
+  const { setUser } = useAuth();
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
@@ -64,9 +64,10 @@ const SecretAdminLogin: React.FC<SecretAdminLoginProps> = ({ onAdminAuthenticate
       // Notify parent component
       onAdminAuthenticated();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Admin authentication failed:', error);
-      setError('Authentication failed: ' + error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setError('Authentication failed: ' + errorMessage);
     } finally {
       setIsAuthenticating(false);
     }

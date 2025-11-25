@@ -1,12 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   TrendingUp,
   TrendingDown,
   BarChart3,
   Target,
-  Award,
-  Calendar,
-  Users,
   MessageSquare,
   CheckCircle,
   AlertTriangle,
@@ -77,26 +74,7 @@ const CounselorAnalytics: React.FC<CounselorAnalyticsProps> = ({ showDemoData = 
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
 
-  useEffect(() => {
-    loadAnalytics();
-  }, [timeframe, user]);
-
-  const loadAnalytics = async () => {
-    setLoading(true);
-    try {
-      // In a real implementation, this would fetch from the feedback service
-      // For now, using mock data that represents realistic analytics
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      
-      setAnalytics(getMockAnalytics());
-    } catch (error) {
-      console.error('Failed to load analytics:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getMockAnalytics = (): AnalyticsData => {
+  const getMockAnalytics = useCallback((): AnalyticsData => {
     const baseScore = 7.5 + Math.random() * 1.5; // 7.5-9.0 range
     
     return {
@@ -169,7 +147,26 @@ const CounselorAnalytics: React.FC<CounselorAnalyticsProps> = ({ showDemoData = 
         'Native American': { score: 7.2, responses: 3, trend: 'up' }
       }
     };
-  };
+  }, [timeframe]);
+
+  const loadAnalytics = useCallback(async () => {
+    setLoading(true);
+    try {
+      // In a real implementation, this would fetch from the feedback service
+      // For now, using mock data that represents realistic analytics
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      
+      setAnalytics(getMockAnalytics());
+    } catch (error) {
+      console.error('Failed to load analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [getMockAnalytics]);
+
+  useEffect(() => {
+    loadAnalytics();
+  }, [loadAnalytics]);
 
   const getScoreColor = (score: number): string => {
     if (score >= 8.5) return 'text-green-600 bg-green-50 border-green-200';
@@ -244,7 +241,7 @@ const CounselorAnalytics: React.FC<CounselorAnalyticsProps> = ({ showDemoData = 
         
         <select
           value={timeframe}
-          onChange={(e) => setTimeframe(e.target.value as any)}
+          onChange={(e) => setTimeframe(e.target.value as '7d' | '30d' | '90d')}
           className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="7d">Last 7 days</option>

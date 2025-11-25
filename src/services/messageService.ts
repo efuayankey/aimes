@@ -60,8 +60,8 @@ export class MessageService {
       }
 
       return docRef.id;
-    } catch (error: any) {
-      throw new Error('Failed to submit message: ' + error.message);
+    } catch (error: unknown) {
+      throw new Error('Failed to submit message: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 
@@ -82,8 +82,8 @@ export class MessageService {
         timestamp: doc.data().timestamp?.toDate(),
         updatedAt: doc.data().updatedAt?.toDate()
       } as Message));
-    } catch (error: any) {
-      throw new Error('Failed to fetch pending messages: ' + error.message);
+    } catch (error: unknown) {
+      throw new Error('Failed to fetch pending messages: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 
@@ -115,8 +115,8 @@ export class MessageService {
         responseDeadline: responseDeadline,
         updatedAt: serverTimestamp()
       });
-    } catch (error: any) {
-      throw new Error('Failed to claim message: ' + error.message);
+    } catch (error: unknown) {
+      throw new Error('Failed to claim message: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 
@@ -144,8 +144,8 @@ export class MessageService {
         responseDeadline: null,
         updatedAt: serverTimestamp()
       });
-    } catch (error: any) {
-      throw new Error('Failed to release message: ' + error.message);
+    } catch (error: unknown) {
+      throw new Error('Failed to release message: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 
@@ -181,8 +181,8 @@ export class MessageService {
       this.generateResponseFeedback(responseRef.id, content, messageId).catch(console.error);
 
       return responseRef.id;
-    } catch (error: any) {
-      throw new Error('Failed to submit response: ' + error.message);
+    } catch (error: unknown) {
+      throw new Error('Failed to submit response: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 
@@ -203,8 +203,8 @@ export class MessageService {
 
       // Sort in memory by timestamp ascending
       return responses.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-    } catch (error: any) {
-      throw new Error('Failed to fetch responses: ' + error.message);
+    } catch (error: unknown) {
+      throw new Error('Failed to fetch responses: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 
@@ -225,8 +225,8 @@ export class MessageService {
         ...doc.data(),
         timestamp: doc.data().timestamp?.toDate()
       } as Response));
-    } catch (error: any) {
-      throw new Error('Failed to fetch counselor responses: ' + error.message);
+    } catch (error: unknown) {
+      throw new Error('Failed to fetch counselor responses: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 
@@ -247,8 +247,8 @@ export class MessageService {
         createdAt: doc.data().timestamp?.toDate(),
         updatedAt: doc.data().updatedAt?.toDate()
       } as Message));
-    } catch (error: any) {
-      throw new Error('Failed to fetch unclaimed messages: ' + error.message);
+    } catch (error: unknown) {
+      throw new Error('Failed to fetch unclaimed messages: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 
@@ -397,8 +397,8 @@ export class MessageService {
       }
 
       return conversations;
-    } catch (error: any) {
-      throw new Error('Failed to fetch student conversations: ' + error.message);
+    } catch (error: unknown) {
+      throw new Error('Failed to fetch student conversations: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 
@@ -439,8 +439,8 @@ export class MessageService {
       }
 
       return conversations;
-    } catch (error: any) {
-      throw new Error('Failed to fetch filtered conversations: ' + error.message);
+    } catch (error: unknown) {
+      throw new Error('Failed to fetch filtered conversations: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 
@@ -482,8 +482,8 @@ export class MessageService {
       // Filter unread responses and sort in memory
       const unreadResponses = allResponses.filter(response => response.readByStudent !== true);
       return unreadResponses.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-    } catch (error: any) {
-      throw new Error('Failed to fetch unread responses: ' + error.message);
+    } catch (error: unknown) {
+      throw new Error('Failed to fetch unread responses: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 
@@ -494,8 +494,8 @@ export class MessageService {
         readByStudent: true,
         readAt: serverTimestamp()
       });
-    } catch (error: any) {
-      throw new Error('Failed to mark response as read: ' + error.message);
+    } catch (error: unknown) {
+      throw new Error('Failed to mark response as read: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   }
 

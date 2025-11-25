@@ -44,7 +44,7 @@ export class JournalServiceDebug {
       
       console.log('DEBUG: Entry saved to localStorage:', entry);
       return entry.id;
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('DEBUG: Failed to save to localStorage:', error);
       throw error;
     }
@@ -85,7 +85,7 @@ export class JournalServiceDebug {
       if (!stored) return [];
       
       const parsed = JSON.parse(stored);
-      return parsed.map((entry: any) => ({
+      return parsed.map((entry: unknown) => ({
         ...entry,
         timestamp: new Date(entry.timestamp),
         lastModified: new Date(entry.lastModified)

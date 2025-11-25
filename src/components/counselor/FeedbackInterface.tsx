@@ -2,14 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Star, 
-  TrendingUp, 
   Brain, 
   Target, 
   Heart, 
   Globe, 
   MessageSquare,
   CheckCircle,
-  AlertCircle,
   Lightbulb,
   BarChart3,
   Clock,
@@ -17,7 +15,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { FeedbackService, AIFeedbackAnalysis, CounselorFeedbackSubmission } from '../../services/feedbackService';
-import { ConversationMessage } from '../../types';
+import { ConversationMessage, ResponseFeedback } from '../../types';
 
 interface FeedbackInterfaceProps {
   responseContent: string;
@@ -25,7 +23,7 @@ interface FeedbackInterfaceProps {
   conversationHistory?: ConversationMessage[];
   counselorId: string;
   culturalContext: string;
-  onFeedbackComplete?: (feedback: any) => void;
+  onFeedbackComplete?: (feedback: ResponseFeedback) => void;
 }
 
 const FeedbackInterface: React.FC<FeedbackInterfaceProps> = ({

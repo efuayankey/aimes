@@ -73,7 +73,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               await AuthService.updateUserProfile(firebaseUser.uid, {
                 'profile.lastActive': new Date(),
                 isEmailVerified: true
-              } as any);
+              } as Partial<User>);
             }
           } else {
             // User exists in Firebase Auth but not in Firestore
@@ -87,9 +87,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setUser(null);
           setFirebaseUser(null);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Auth state change error:', error);
-        setError('Failed to load user profile');
+        const errorMessage = error instanceof Error ? error.message : 'Failed to load user profile';
+        setError(errorMessage);
         setUser(null);
         setFirebaseUser(null);
       } finally {
@@ -117,8 +118,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(result.user);
       
       return { needsEmailVerification: result.needsEmailVerification };
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Signup failed';
+      setError(errorMessage);
       throw error;
     } finally {
       setLoading(false);
@@ -134,8 +136,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await AuthService.signIn(email, password);
       
       // The auth state listener will handle setting the user state
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Sign in failed';
+      setError(errorMessage);
       throw error;
     } finally {
       setLoading(false);
@@ -151,8 +154,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await AuthService.signOut();
       
       // The auth state listener will handle clearing the user state
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Sign out failed';
+      setError(errorMessage);
       throw error;
     } finally {
       setLoading(false);
@@ -164,8 +168,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setError(null);
       await AuthService.resetPassword(email);
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Password reset failed';
+      setError(errorMessage);
       throw error;
     }
   };
@@ -180,8 +185,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Update local state
       setUser(prevUser => prevUser ? { ...prevUser, ...updates } : null);
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Profile update failed';
+      setError(errorMessage);
       throw error;
     }
   };
@@ -200,8 +206,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           isEmailVerified: firebaseUser.emailVerified
         });
       }
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to refresh user data';
+      setError(errorMessage);
       throw error;
     }
   };
@@ -265,7 +272,7 @@ export const withAuthRequired = <P extends object>(
   Component: React.ComponentType<P>,
   allowedUserTypes?: UserType[]
 ) => {
-  return (props: P) => {
+  const AuthRequiredComponent = (props: P) => {
     const { user, loading } = useAuth();
 
     if (loading) {
@@ -296,7 +303,7 @@ export const withAuthRequired = <P extends object>(
               onClick={() => window.location.reload()}
               className="bg-teal-600 text-white px-6 py-2 rounded-lg hover:bg-teal-700"
             >
-              I've Verified My Email
+              I&apos;ve Verified My Email
             </button>
           </div>
         </div>
@@ -311,7 +318,7 @@ export const withAuthRequired = <P extends object>(
               Access Denied
             </h2>
             <p className="text-gray-600 mb-6">
-              You don't have permission to access this page.
+              You don&apos;t have permission to access this page.
             </p>
             <button
               onClick={() => window.location.href = '/dashboard'}
@@ -326,4 +333,7 @@ export const withAuthRequired = <P extends object>(
 
     return <Component {...props} />;
   };
+  
+  AuthRequiredComponent.displayName = `withAuthRequired(${Component.displayName || Component.name})`;
+  return AuthRequiredComponent;
 };

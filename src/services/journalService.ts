@@ -57,13 +57,13 @@ export class JournalService {
 
       // Add optional fields only if they have values
       if (draft.trigger) {
-        (entry as any).trigger = draft.trigger;
+        (entry as JournalEntry).trigger = draft.trigger;
       }
 
       console.log('Attempting to save journal entry:', entry);
 
       // Create the data object for Firestore, filtering out undefined values
-      const firestoreData: any = {
+      const firestoreData: Partial<JournalEntry> = {
         studentId: entry.studentId,
         content: entry.content,
         title: entry.title,
@@ -91,7 +91,7 @@ export class JournalService {
 
       console.log('Journal entry saved successfully with ID:', docRef.id);
       return docRef.id;
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('Failed to create journal entry:', error);
       console.error('Error details:', {
         code: error.code,
@@ -105,7 +105,7 @@ export class JournalService {
   // Update an existing journal entry
   static async updateEntry(entryId: string, updates: Partial<JournalDraft>): Promise<void> {
     try {
-      const updateData: any = { ...updates };
+      const updateData: Partial<JournalEntry> = { ...updates };
       
       if (updates.content) {
         const wordCount = updates.content.split(/\s+/).filter(word => word.length > 0).length;
@@ -116,7 +116,7 @@ export class JournalService {
       updateData.lastModified = Timestamp.fromDate(new Date());
 
       await updateDoc(doc(db, this.COLLECTION_NAME, entryId), updateData);
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('Failed to update journal entry:', error);
       throw new Error('Failed to update journal entry: ' + error.message);
     }
@@ -126,7 +126,7 @@ export class JournalService {
   static async deleteEntry(entryId: string): Promise<void> {
     try {
       await deleteDoc(doc(db, this.COLLECTION_NAME, entryId));
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('Failed to delete journal entry:', error);
       throw new Error('Failed to delete journal entry: ' + error.message);
     }
@@ -139,7 +139,7 @@ export class JournalService {
   ): Promise<JournalEntry[]> {
     try {
       // Simplified query to avoid index requirements
-      let q = query(
+      const q = query(
         collection(db, this.COLLECTION_NAME),
         where('studentId', '==', studentId)
       );
@@ -181,7 +181,7 @@ export class JournalService {
 
       // Apply sorting
       entries.sort((a, b) => {
-        let aValue: any, bValue: any;
+        let aValue: number | string, bValue: number | string;
         
         if (filters.sortBy === 'date') {
           aValue = a.timestamp.getTime();
@@ -202,7 +202,7 @@ export class JournalService {
       });
 
       return entries;
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('Failed to get journal entries:', error);
       throw new Error('Failed to get journal entries: ' + error.message);
     }
@@ -224,7 +224,7 @@ export class JournalService {
         timestamp: doc.data().timestamp?.toDate(),
         lastModified: doc.data().lastModified?.toDate()
       } as JournalEntry;
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('Failed to get journal entry:', error);
       throw new Error('Failed to get journal entry: ' + error.message);
     }
@@ -270,7 +270,7 @@ export class JournalService {
         streakDays,
         longestStreak
       };
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('Failed to get journal stats:', error);
       throw new Error('Failed to get journal stats: ' + error.message);
     }
@@ -321,7 +321,7 @@ export class JournalService {
       }
 
       return trends;
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('Failed to get mood trends:', error);
       throw new Error('Failed to get mood trends: ' + error.message);
     }
@@ -334,7 +334,7 @@ export class JournalService {
         sharedWithCounselors: share,
         lastModified: Timestamp.fromDate(new Date())
       });
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('Failed to update sharing status:', error);
       throw new Error('Failed to update sharing status: ' + error.message);
     }
@@ -360,7 +360,7 @@ export class JournalService {
         timestamp: doc.data().timestamp?.toDate(),
         lastModified: doc.data().lastModified?.toDate()
       } as JournalEntry));
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('Failed to get shared entries:', error);
       throw new Error('Failed to get shared entries: ' + error.message);
     }
@@ -389,6 +389,7 @@ export class JournalService {
 
     let currentStreak = 0;
     let longestStreak = 0;
+    // eslint-disable-next-line prefer-const
     let checkDate = new Date();
 
     // Check current streak (going backwards from today)

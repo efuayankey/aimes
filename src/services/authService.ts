@@ -44,12 +44,15 @@ export class AuthService {
         throw firestoreError;
       }
 
-      return { user: userData as any, needsEmailVerification: true };
-    } catch (error: any) {
+      return { user: userData as User, needsEmailVerification: true };
+    } catch (error: unknown) {
       console.error('Signup error details:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
-      throw new Error(this.getErrorMessage(error.code));
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+      }
+      const errorCode = (error as { code?: string })?.code || 'unknown';
+      console.error('Error code:', errorCode);
+      throw new Error(this.getErrorMessage(errorCode));
     }
   }
 
@@ -75,9 +78,10 @@ export class AuthService {
       });
 
       return userData;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Sign in error details:', error);
-      throw new Error(this.getErrorMessage(error.code));
+      const errorCode = (error as { code?: string })?.code || 'unknown';
+      throw new Error(this.getErrorMessage(errorCode));
     }
   }
 
@@ -85,7 +89,7 @@ export class AuthService {
   static async signOut() {
     try {
       await firebaseSignOut(auth);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error('Failed to sign out. Please try again.');
     }
   }
@@ -94,8 +98,9 @@ export class AuthService {
   static async resetPassword(email: string) {
     try {
       await sendPasswordResetEmail(auth, email);
-    } catch (error: any) {
-      throw new Error(this.getErrorMessage(error.code));
+    } catch (error: unknown) {
+      const errorCode = (error as { code?: string })?.code || 'unknown';
+      throw new Error(this.getErrorMessage(errorCode));
     }
   }
 
@@ -106,7 +111,7 @@ export class AuthService {
         ...updates,
         'profile.lastActive': serverTimestamp()
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error('Failed to update profile. Please try again.');
     }
   }
@@ -118,7 +123,7 @@ export class AuthService {
         studentProfile: studentProfile,
         'profile.lastActive': serverTimestamp()
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error('Failed to update student profile.');
     }
   }
@@ -130,7 +135,7 @@ export class AuthService {
         counselorProfile: counselorProfile,
         'profile.lastActive': serverTimestamp()
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error('Failed to update counselor profile.');
     }
   }
@@ -158,7 +163,7 @@ export class AuthService {
         'counselorProfile.verified': verified,
         'profile.lastActive': serverTimestamp()
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error('Failed to update counselor verification status.');
     }
   }

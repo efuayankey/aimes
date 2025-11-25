@@ -60,7 +60,7 @@ export class ExportService {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('Failed to export conversation as JSON:', error);
       throw new Error('Failed to export conversation: ' + error.message);
     }
@@ -141,7 +141,7 @@ export class ExportService {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('Failed to export conversation as CSV:', error);
       throw new Error('Failed to export conversation: ' + error.message);
     }
@@ -208,7 +208,7 @@ export class ExportService {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('Failed to export multiple conversations:', error);
       throw new Error('Failed to export conversations: ' + error.message);
     }
@@ -268,7 +268,7 @@ export class ExportService {
         averageMessageLength: Math.round(averageMessageLength),
         conversationDuration
       };
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error('Failed to get export statistics:', error);
       throw new Error('Failed to get statistics: ' + error.message);
     }

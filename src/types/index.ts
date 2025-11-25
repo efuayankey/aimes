@@ -5,14 +5,14 @@ export * from './Journal';
 export * from './Chat';
 
 // Common utility types
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
   timestamp: Date;
 }
 
-export interface PaginatedResponse<T = any> {
+export interface PaginatedResponse<T = unknown> {
   data: T[];
   total: number;
   page: number;
@@ -41,7 +41,7 @@ export interface BaseComponentProps {
 // Route types
 export interface RouteConfig {
   path: string;
-  component: React.ComponentType<any>;
+  component: React.ComponentType<unknown>;
   requiresAuth: boolean;
   allowedUserTypes?: ('student' | 'counselor')[];
   title: string;
