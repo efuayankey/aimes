@@ -204,7 +204,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
                   value={formData.email}
                   onChange={(e) => updateFormData('email', e.target.value)}
                   placeholder="your.email@university.edu"
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
+                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-black ${
                     formErrors.email ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
@@ -225,7 +225,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
                   value={formData.password}
                   onChange={(e) => updateFormData('password', e.target.value)}
                   placeholder="Create a strong password"
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-black ${
                     formErrors.password ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
@@ -253,7 +253,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
                   value={formData.confirmPassword}
                   onChange={(e) => updateFormData('confirmPassword', e.target.value)}
                   placeholder="Confirm your password"
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
+                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-black ${
                     formErrors.confirmPassword ? 'border-red-500' : 'border-gray-300'
                   }`}
                 />
@@ -292,7 +292,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
                     value={formData.firstName}
                     onChange={(e) => updateFormData('firstName', e.target.value)}
                     placeholder="First name"
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-black ${
                       formErrors.firstName ? 'border-red-500' : 'border-gray-300'
                     }`}
                   />
@@ -313,7 +313,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
                     value={formData.lastName}
                     onChange={(e) => updateFormData('lastName', e.target.value)}
                     placeholder="Last name"
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-black ${
                       formErrors.lastName ? 'border-red-500' : 'border-gray-300'
                     }`}
                   />

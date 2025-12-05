@@ -138,7 +138,7 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({
                 value={email}
                 onChange={handleEmailChange}
                 placeholder="your.email@university.edu"
-                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
+                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-black ${
                   emailError ? 'border-red-500' : 'border-gray-300'
                 }`}
                 disabled={loading}

@@ -93,7 +93,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 value={formData.email}
                 onChange={(e) => updateFormData('email', e.target.value)}
                 placeholder="your.email@university.edu"
-                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
+                className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-black ${
                   formErrors.email ? 'border-red-500' : 'border-gray-300'
                 }`}
                 disabled={loading}
@@ -115,7 +115,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                 value={formData.password}
                 onChange={(e) => updateFormData('password', e.target.value)}
                 placeholder="Enter your password"
-                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent ${
+                className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-black ${
                   formErrors.password ? 'border-red-500' : 'border-gray-300'
                 }`}
                 disabled={loading}

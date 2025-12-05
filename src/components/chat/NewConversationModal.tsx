@@ -126,7 +126,7 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g., Stress about exams, Family issues, etc."
-                className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent text-black"
                 maxLength={100}
               />
               <button
@@ -151,7 +151,7 @@ const NewConversationModal: React.FC<NewConversationModalProps> = ({
               value={firstMessage}
               onChange={(e) => setFirstMessage(e.target.value)}
               placeholder="Share what&apos;s on your mind. Be as detailed as you&apos;d like..."
-              className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-black"
               rows={4}
               maxLength={1000}
             />

@@ -415,7 +415,7 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Type your message..."
-              className="w-full p-3 border border-gray-300 rounded-xl resize-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="w-full p-3 border border-gray-300 rounded-xl resize-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-black"
               rows={1}
               style={{ minHeight: '44px', maxHeight: '120px' }}
             />

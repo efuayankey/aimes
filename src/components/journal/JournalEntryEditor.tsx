@@ -130,7 +130,7 @@ const JournalEntryEditor: React.FC<JournalEntryEditorProps> = ({
             onChange={(e) => updateDraft({ title: e.target.value })}
             placeholder="Give your entry a title..."
             disabled={isLoading}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500 text-black"
           />
         </div>
 
@@ -158,7 +158,7 @@ const JournalEntryEditor: React.FC<JournalEntryEditorProps> = ({
             placeholder="Write about your thoughts, feelings, experiences, or anything else you'd like to express..."
             disabled={isLoading}
             rows={12}
-            className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:bg-gray-50 disabled:text-gray-500"
+            className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none disabled:bg-gray-50 disabled:text-gray-500 text-black"
           />
           <div className="flex justify-between items-center mt-2 text-sm text-gray-500">
             <span>{wordCount} words • ~{estimatedReadTime} min read</span>
@@ -197,7 +197,7 @@ const JournalEntryEditor: React.FC<JournalEntryEditorProps> = ({
                 onChange={(e) => updateDraft({ trigger: e.target.value })}
                 placeholder="e.g., therapy session, stressful day, good news..."
                 disabled={isLoading}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-500 text-black"
               />
             </div>
 

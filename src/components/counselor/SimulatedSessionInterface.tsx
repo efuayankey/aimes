@@ -699,7 +699,7 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
               onChange={(e) => setCounselorInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Type your response as a counselor..."
-              className="flex-1 min-h-[60px] p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 min-h-[60px] p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
               disabled={isPatientTyping}
             />
             <button
