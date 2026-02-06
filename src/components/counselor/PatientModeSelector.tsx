@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Users, Bot, Info, Play, BookOpen, X } from 'lucide-react';
+import { Users, Bot, Brain, Info, Play, BookOpen, X } from 'lucide-react';
 
-export type PatientMode = 'real' | 'simulated';
+export type PatientMode = 'real' | 'simulated' | 'cbt';
 
 interface PatientModeSelectorProps {
   currentMode: PatientMode;
@@ -50,12 +50,18 @@ export const PatientModeSelector: React.FC<PatientModeSelectorProps> = ({
                 <strong>Simulated Patients:</strong> Practice with AI-powered training scenarios that provide instant feedback on your cultural competency
               </div>
             </div>
+            <div className="flex items-start space-x-2">
+              <Brain className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <div>
+                <strong>CBT Training:</strong> Learn structured CBT skills with educational content, practice exercises, and AI feedback
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Mode Selection Cards */}
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid md:grid-cols-3 gap-4">
         {/* Real Patients Mode */}
         <div
           className={`
@@ -150,22 +156,78 @@ export const PatientModeSelector: React.FC<PatientModeSelectorProps> = ({
             </div>
           )}
         </div>
+
+        {/* CBT Training Mode */}
+        <div
+          className={`
+            relative p-6 border-2 rounded-lg cursor-pointer transition-all duration-200
+            ${currentMode === 'cbt'
+              ? 'border-purple-500 bg-purple-50 shadow-md'
+              : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
+            }
+          `}
+          onClick={() => onModeChange('cbt')}
+        >
+          <div className="flex items-center justify-center w-12 h-12 bg-purple-600 rounded-lg mb-4">
+            <Brain className="w-6 h-6 text-white" />
+          </div>
+
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">CBT Training</h3>
+          <p className="text-gray-600 text-sm mb-4">
+            Learn core Cognitive Behavioral Therapy skills with structured lessons, practice exercises, and AI feedback.
+          </p>
+
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2 text-sm">
+              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+              <span className="text-gray-700">6 structured CBT topics</span>
+            </div>
+            <div className="flex items-center space-x-2 text-sm">
+              <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+              <span className="text-gray-700">Practice exercises with AI feedback</span>
+            </div>
+            <div className="flex items-center space-x-2 text-sm">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span className="text-gray-700">Simulator integration for practice</span>
+            </div>
+          </div>
+
+          {/* NEW indicator */}
+          <div className="absolute top-4 left-4">
+            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
+              NEW
+            </span>
+          </div>
+
+          {currentMode === 'cbt' && (
+            <div className="absolute top-4 right-4">
+              <div className="w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center">
+                <div className="w-2 h-2 bg-white rounded-full"></div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Action Buttons */}
       <div className="mt-6 flex flex-col sm:flex-row gap-3">
         {currentMode === 'real' ? (
-          <button 
+          <button
             onClick={() => onViewPatientQueue?.()}
             className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors"
           >
             <Play className="w-4 h-4" />
             <span>View Patient Queue</span>
           </button>
-        ) : (
+        ) : currentMode === 'simulated' ? (
           <button className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">
             <Play className="w-4 h-4" />
             <span>Start Training Session</span>
+          </button>
+        ) : (
+          <button className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors">
+            <Brain className="w-4 h-4" />
+            <span>Open CBT Training</span>
           </button>
         )}
 
@@ -199,6 +261,18 @@ export const PatientModeSelector: React.FC<PatientModeSelectorProps> = ({
             <li>• Maintain professional boundaries</li>
             <li>• Be culturally sensitive and inclusive</li>
             <li>• Escalate crisis situations immediately</li>
+          </ul>
+        </div>
+      )}
+
+      {currentMode === 'cbt' && (
+        <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+          <h4 className="font-medium text-purple-900 mb-2">CBT Training Features</h4>
+          <ul className="text-sm text-purple-800 space-y-1">
+            <li>• Learn the Cognitive Triangle and 6 core CBT skills</li>
+            <li>• Practice exercises with AI-powered feedback</li>
+            <li>• Examples for anxiety, depression, academic stress, and more</li>
+            <li>• Jump to the simulator to practice skills with a patient</li>
           </ul>
         </div>
       )}

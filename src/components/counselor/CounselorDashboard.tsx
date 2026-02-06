@@ -25,6 +25,7 @@ const CounselorFeedbackDashboard = React.lazy(() => import('../feedback/Counselo
 const PatientModeSelector = React.lazy(() => import('./PatientModeSelector').then(module => ({ default: module.PatientModeSelector })));
 const SimulatedSessionInterface = React.lazy(() => import('./SimulatedSessionInterface').then(module => ({ default: module.SimulatedSessionInterface })));
 const TrainingHistoryView = React.lazy(() => import('./TrainingHistoryView').then(module => ({ default: module.TrainingHistoryView })));
+const CBTTrainingModule = React.lazy(() => import('./CBTTrainingModule').then(module => ({ default: module.CBTTrainingModule })));
 
 interface ConversationQueueProps {
   conversations: Conversation[];
@@ -157,7 +158,8 @@ const CounselorDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'new' | 'mine'>('new');
   const [myUnreadCount, setMyUnreadCount] = useState(0);
   const [currentView, setCurrentView] = useState<'queue' | 'training' | 'feedback' | 'history'>('queue');
-  const [patientMode, setPatientMode] = useState<'real' | 'simulated'>('real');
+  const [patientMode, setPatientMode] = useState<'real' | 'simulated' | 'cbt'>('real');
+  const [cbtSimulatorContext, setCbtSimulatorContext] = useState<{ suggestedConcern: string; objective: string; tips: string[] } | null>(null);
   const [stats, setStats] = useState({
     total: 0,
     urgent: 0,
@@ -494,19 +496,31 @@ const CounselorDashboard: React.FC = () => {
             }>
               <PatientModeSelector
                 currentMode={patientMode}
-                onModeChange={setPatientMode}
+                onModeChange={(mode) => {
+                  setPatientMode(mode);
+                  if (mode !== 'simulated') {
+                    setCbtSimulatorContext(null);
+                  }
+                }}
                 onViewPatientQueue={() => setCurrentView('queue')}
               />
-              
-              {patientMode === 'simulated' ? (
-                <SimulatedSessionInterface 
+
+              {patientMode === 'cbt' ? (
+                <CBTTrainingModule
+                  onStartSimulator={(context) => {
+                    setCbtSimulatorContext(context);
+                    setPatientMode('simulated');
+                  }}
+                  onBackToModes={() => setPatientMode('real')}
+                />
+              ) : patientMode === 'simulated' ? (
+                <SimulatedSessionInterface
+                  cbtContext={cbtSimulatorContext}
                   onSessionComplete={(session) => {
                     console.log('Training session completed:', session);
-                    // Could add session tracking here
                   }}
                   onSessionAnalysisReady={(analysis) => {
                     console.log('Training session analysis ready:', analysis);
-                    // Could show analysis modal here
                   }}
                 />
               ) : (

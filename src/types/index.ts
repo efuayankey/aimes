@@ -3,6 +3,7 @@ export * from './User';
 export * from './Message';
 export * from './Journal';
 export * from './Chat';
+export * from './CBTTraining';
 
 // Common utility types
 export interface ApiResponse<T = unknown> {

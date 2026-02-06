@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  User, 
-  Clock, 
-  Send, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  User,
+  Clock,
+  Send,
+  AlertTriangle,
+  CheckCircle,
   RotateCcw,
   Settings,
   Info,
   MessageCircle,
   BarChart3,
-  X
+  X,
+  Volume2,
+  Languages
 } from 'lucide-react';
 import { 
   SimulatedPatient, 
@@ -28,12 +30,20 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ConversationFeedback } from '../../types/Feedback';
 import { CulturalBackground } from '../../types/User';
 
+interface CBTSimulatorContext {
+  suggestedConcern: string;
+  objective: string;
+  tips: string[];
+}
+
 interface SimulatedSessionInterfaceProps {
+  cbtContext?: CBTSimulatorContext | null;
   onSessionComplete?: (session: SimulationSession) => void;
   onSessionAnalysisReady?: (analysis: ConversationFeedback) => void;
 }
 
 export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps> = ({
+  cbtContext,
   onSessionComplete,
   onSessionAnalysisReady
 }) => {
@@ -64,9 +74,28 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
   const [showPatientSelection, setShowPatientSelection] = useState(true);
   const [selectedOptions, setSelectedOptions] = useState<PatientGenerationOptions>({});
   
+  // Audio state for text-to-speech
+  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Translation state for bilingual mediation
+  const [translations, setTranslations] = useState<Record<string, string>>({});
+  const [showingTranslation, setShowingTranslation] = useState<Record<string, boolean>>({});
+  const [translating, setTranslating] = useState<Record<string, boolean>>({});
+
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Pre-select concern when CBT context is provided
+  useEffect(() => {
+    if (cbtContext?.suggestedConcern) {
+      setSelectedOptions(prev => ({
+        ...prev,
+        concern: cbtContext.suggestedConcern as MentalHealthConcern,
+      }));
+    }
+  }, [cbtContext]);
 
   // Timer for session duration
   useEffect(() => {
@@ -89,6 +118,16 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   // Start new training session with selected patient characteristics
   const startNewSession = async () => {
@@ -184,10 +223,15 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
       // Simulate typing delay
       await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
 
+      const cbtContextString = cbtContext
+        ? `The counselor is practicing CBT skills. Objective: ${cbtContext.objective}. Respond in a way that gives the counselor opportunities to practice these CBT techniques.`
+        : undefined;
+
       const patientResponse = await PatientSimulationService.generatePatientResponse(
         currentPatient,
         updatedMessages,
-        counselorInput
+        counselorInput,
+        cbtContextString
       );
 
       const patientMessage: SimulationMessage = {
@@ -318,6 +362,116 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
     }
   };
 
+  // Detect language of message (simple heuristic)
+  const detectLanguage = (text: string): 'en' | 'es' => {
+    // Simple Spanish detection: check for common Spanish words/patterns
+    const spanishPattern = /\b(el|la|los|las|un|una|de|que|en|por|para|con|mi|tu|su|soy|eres|está|están|¿|¡)\b/i;
+    return spanishPattern.test(text) ? 'es' : 'en';
+  };
+
+  // Handle translation toggle
+  const handleTranslateToggle = async (messageId: string, text: string, currentLang: 'en' | 'es') => {
+    // If already showing translation, just toggle it off
+    if (showingTranslation[messageId]) {
+      setShowingTranslation(prev => ({ ...prev, [messageId]: false }));
+      return;
+    }
+
+    // If we already have the translation, just show it
+    if (translations[messageId]) {
+      setShowingTranslation(prev => ({ ...prev, [messageId]: true }));
+      return;
+    }
+
+    // Otherwise, fetch the translation
+    try {
+      setTranslating(prev => ({ ...prev, [messageId]: true }));
+
+      const targetLang = currentLang === 'en' ? 'es' : 'en';
+
+      const response = await fetch('/api/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          text,
+          sourceLanguage: currentLang,
+          targetLanguage: targetLang
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Translation failed');
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        setTranslations(prev => ({ ...prev, [messageId]: data.translation }));
+        setShowingTranslation(prev => ({ ...prev, [messageId]: true }));
+      } else {
+        throw new Error(data.error || 'Translation failed');
+      }
+    } catch (error) {
+      console.error('Translation error:', error);
+      alert('Failed to translate message. Please try again.');
+    } finally {
+      setTranslating(prev => ({ ...prev, [messageId]: false }));
+    }
+  };
+
+  // Handle text-to-speech playback for accessibility
+  const handlePlayAudio = async (messageId: string, text: string, language: 'en' | 'es') => {
+    try {
+      // Stop any currently playing audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      setPlayingAudio(messageId);
+
+      const response = await fetch('/api/text-to-speech', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ text, language })
+      });
+
+      if (!response.ok) {
+        throw new Error('Audio generation failed');
+      }
+
+      // Create audio from the response blob
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+
+      audioRef.current = audio;
+
+      audio.onended = () => {
+        setPlayingAudio(null);
+        URL.revokeObjectURL(audioUrl);
+        audioRef.current = null;
+      };
+
+      audio.onerror = () => {
+        setPlayingAudio(null);
+        URL.revokeObjectURL(audioUrl);
+        audioRef.current = null;
+        alert('Failed to play audio. Please try again.');
+      };
+
+      await audio.play();
+    } catch (error) {
+      console.error('Audio playback error:', error);
+      setPlayingAudio(null);
+      alert('Failed to generate audio. Please try again.');
+    }
+  };
+
   // Format duration
   const formatDuration = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -440,6 +594,22 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
         {showPatientSelection ? (
           // Patient Selection Screen
           <div className="max-w-4xl mx-auto">
+            {/* CBT Context Banner */}
+            {cbtContext && (
+              <div className="mb-6 bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <h4 className="font-semibold text-purple-900 mb-2">CBT Practice Objective</h4>
+                <p className="text-sm text-purple-800 mb-3">{cbtContext.objective}</p>
+                <div>
+                  <p className="text-xs font-medium text-purple-700 mb-1">Tips for this exercise:</p>
+                  <ul className="text-xs text-purple-700 space-y-1">
+                    {cbtContext.tips.map((tip, i) => (
+                      <li key={i}>&#8226; {tip}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
             <div className="text-center mb-8">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <User className="w-8 h-8 text-blue-600" />
@@ -644,29 +814,83 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
         ) : (
           // Chat messages
           <>
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.senderType === 'counselor' ? 'justify-end' : 'justify-start'}`}
-              >
+            {messages.map((message) => {
+              const messageLang = detectLanguage(message.content);
+              return (
                 <div
-                  className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                    message.senderType === 'counselor'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-900'
-                  }`}
+                  key={message.id}
+                  className={`flex ${message.senderType === 'counselor' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <p className="text-sm">{message.content}</p>
-                  <div
-                    className={`text-xs mt-1 ${
-                      message.senderType === 'counselor' ? 'text-blue-200' : 'text-gray-500'
-                    }`}
-                  >
-                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <div className={`max-w-xs lg:max-w-md ${message.senderType === 'counselor' ? 'text-right' : 'text-left'}`}>
+                    <div
+                      className={`px-4 py-2 rounded-lg inline-block ${
+                        message.senderType === 'counselor'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 text-gray-900'
+                      }`}
+                    >
+                      <p className="text-sm">{message.content}</p>
+                      <div
+                        className={`text-xs mt-1 ${
+                          message.senderType === 'counselor' ? 'text-blue-200' : 'text-gray-500'
+                        }`}
+                      >
+                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+
+                    {/* Translation and Audio controls */}
+                    <div className={`mt-2 flex flex-wrap items-center gap-2 ${message.senderType === 'counselor' ? 'justify-end' : 'justify-start'}`}>
+                      {/* Translation toggle */}
+                      <button
+                        onClick={() => handleTranslateToggle(message.id, message.content, messageLang)}
+                        disabled={translating[message.id]}
+                        className="inline-flex items-center space-x-1 px-2 py-1 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-50"
+                        title={showingTranslation[message.id] ? "Show original" : `Translate to ${messageLang === 'en' ? 'Spanish' : 'English'}`}
+                      >
+                        <Languages size={12} />
+                        <span>
+                          {translating[message.id]
+                            ? 'Translating...'
+                            : showingTranslation[message.id]
+                            ? 'Show original'
+                            : `Show ${messageLang === 'en' ? 'Spanish' : 'English'}`}
+                        </span>
+                      </button>
+
+                      {/* Audio read-aloud */}
+                      <button
+                        onClick={() => {
+                          const displayedText = showingTranslation[message.id] ? translations[message.id] : message.content;
+                          const displayedLang = showingTranslation[message.id] ? (messageLang === 'en' ? 'es' : 'en') : messageLang;
+                          handlePlayAudio(message.id + (showingTranslation[message.id] ? '-translation' : ''), displayedText, displayedLang);
+                        }}
+                        disabled={playingAudio === (message.id + (showingTranslation[message.id] ? '-translation' : ''))}
+                        className="inline-flex items-center space-x-1 px-2 py-1 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-50"
+                        title="Read aloud (accessibility)"
+                      >
+                        <Volume2 size={12} className={playingAudio === (message.id + (showingTranslation[message.id] ? '-translation' : '')) ? 'animate-pulse' : ''} />
+                        <span>
+                          {playingAudio === (message.id + (showingTranslation[message.id] ? '-translation' : ''))
+                            ? 'Playing...'
+                            : 'Listen'}
+                        </span>
+                      </button>
+                    </div>
+
+                    {/* Show translation text if toggled */}
+                    {showingTranslation[message.id] && translations[message.id] && (
+                      <div className={`mt-2 p-3 rounded-lg bg-indigo-50 border border-indigo-200 ${message.senderType === 'counselor' ? 'text-right' : 'text-left'}`}>
+                        <p className="text-xs text-indigo-600 font-medium mb-1">
+                          {messageLang === 'en' ? 'Spanish' : 'English'} translation:
+                        </p>
+                        <p className="text-sm text-indigo-900 whitespace-pre-wrap">{translations[message.id]}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {/* Typing indicator */}
             {isPatientTyping && (

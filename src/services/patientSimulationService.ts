@@ -71,17 +71,23 @@ export class PatientSimulationService {
   static async generatePatientResponse(
     patient: SimulatedPatient,
     conversationHistory: SimulationMessage[],
-    counselorMessage: string
+    counselorMessage: string,
+    additionalSystemContext?: string
   ): Promise<string> {
     try {
       const prompt = this.buildPatientPrompt(patient, conversationHistory, counselorMessage);
+
+      let systemPrompt = this.getPatientSystemPrompt();
+      if (additionalSystemContext) {
+        systemPrompt += '\n\nADDITIONAL CONTEXT:\n' + additionalSystemContext;
+      }
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4',
         messages: [
           {
             role: 'system',
-            content: this.getPatientSystemPrompt()
+            content: systemPrompt
           },
           {
             role: 'user',
