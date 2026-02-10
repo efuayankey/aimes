@@ -1,10 +1,10 @@
 // Continuous chat interface for real-time conversations
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { 
-  Send, 
-  MessageCircle, 
-  User, 
-  Bot, 
+import {
+  Send,
+  MessageCircle,
+  User,
+  Bot,
   CheckCircle,
   Circle,
   MoreVertical,
@@ -13,7 +13,11 @@ import {
   Download,
   FileText,
   BarChart3,
-  Brain
+  Brain,
+  Languages,
+  Volume2,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ConversationService } from '../../services/conversationService';
@@ -55,6 +59,13 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
   const [conversationOutcome, setConversationOutcome] = useState<ConversationOutcome | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Translation and audio state for bilingual mediation
+  const [translations, setTranslations] = useState<Record<string, string>>({});
+  const [showingTranslation, setShowingTranslation] = useState<Record<string, boolean>>({});
+  const [translating, setTranslating] = useState<Record<string, boolean>>({});
+  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   const loadMessages = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -93,7 +104,14 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      // Cleanup audio on unmount
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
   }, [conversation.id, user?.uid, loadMessages, onUnreadCountChange]);
 
   const scrollToBottom = () => {
@@ -211,6 +229,116 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
     return 'Just now';
   };
 
+  // Bilingual mediation: Detect language of message (simple heuristic)
+  const detectLanguage = (text: string): 'en' | 'es' => {
+    // Simple Spanish detection: check for common Spanish words/patterns
+    const spanishPattern = /\b(el|la|los|las|un|una|de|que|en|por|para|con|mi|tu|su|soy|eres|está|están|¿|¡)\b/i;
+    return spanishPattern.test(text) ? 'es' : 'en';
+  };
+
+  // Handle translation toggle
+  const handleTranslateToggle = async (messageId: string, text: string, currentLang: 'en' | 'es') => {
+    // If already showing translation, just toggle it off
+    if (showingTranslation[messageId]) {
+      setShowingTranslation(prev => ({ ...prev, [messageId]: false }));
+      return;
+    }
+
+    // If we already have the translation, just show it
+    if (translations[messageId]) {
+      setShowingTranslation(prev => ({ ...prev, [messageId]: true }));
+      return;
+    }
+
+    // Otherwise, fetch the translation
+    try {
+      setTranslating(prev => ({ ...prev, [messageId]: true }));
+
+      const targetLang = currentLang === 'en' ? 'es' : 'en';
+
+      const response = await fetch('/api/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          text,
+          sourceLanguage: currentLang,
+          targetLanguage: targetLang
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Translation failed');
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        setTranslations(prev => ({ ...prev, [messageId]: data.translation }));
+        setShowingTranslation(prev => ({ ...prev, [messageId]: true }));
+      } else {
+        throw new Error(data.error || 'Translation failed');
+      }
+    } catch (error) {
+      console.error('Translation error:', error);
+      alert('Failed to translate message. Please try again.');
+    } finally {
+      setTranslating(prev => ({ ...prev, [messageId]: false }));
+    }
+  };
+
+  // Handle text-to-speech playback for accessibility
+  const handlePlayAudio = async (messageId: string, text: string, language: 'en' | 'es') => {
+    try {
+      // Stop any currently playing audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      setPlayingAudio(messageId);
+
+      const response = await fetch('/api/text-to-speech', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ text, language })
+      });
+
+      if (!response.ok) {
+        throw new Error('Audio generation failed');
+      }
+
+      // Create audio from the response blob
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+
+      audioRef.current = audio;
+
+      audio.onended = () => {
+        setPlayingAudio(null);
+        URL.revokeObjectURL(audioUrl);
+        audioRef.current = null;
+      };
+
+      audio.onerror = () => {
+        setPlayingAudio(null);
+        URL.revokeObjectURL(audioUrl);
+        audioRef.current = null;
+        alert('Failed to play audio. Please try again.');
+      };
+
+      await audio.play();
+    } catch (error) {
+      console.error('Audio playback error:', error);
+      setPlayingAudio(null);
+      alert('Failed to generate audio. Please try again.');
+    }
+  };
+
   const renderMessage = (message: ConversationMessage) => {
     const isCurrentUser = message.senderId === user?.uid;
     const isRead = user?.uid ? message.readBy.includes(user.uid) : false;
@@ -265,6 +393,59 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
                 </div>
               )}
             </div>
+
+            {/* Bilingual mediation & accessibility controls */}
+            {(() => {
+              const messageLang = detectLanguage(message.content);
+              const displayedText = showingTranslation[message.id] ? translations[message.id] : message.content;
+              const displayedLang = showingTranslation[message.id] ? (messageLang === 'en' ? 'es' : 'en') : messageLang;
+
+              return (
+                <div className={`mt-2 flex flex-wrap items-center gap-2 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
+                  {/* Translation toggle */}
+                  <button
+                    onClick={() => handleTranslateToggle(message.id, message.content, messageLang)}
+                    disabled={translating[message.id]}
+                    className="inline-flex items-center space-x-1 px-2 py-1 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-50"
+                    title={showingTranslation[message.id] ? "Show original" : `Translate to ${messageLang === 'en' ? 'Spanish' : 'English'}`}
+                  >
+                    <Languages size={12} />
+                    <span>
+                      {translating[message.id]
+                        ? 'Translating...'
+                        : showingTranslation[message.id]
+                        ? 'Show original'
+                        : `Show ${messageLang === 'en' ? 'Spanish' : 'English'}`}
+                    </span>
+                  </button>
+
+                  {/* Audio read-aloud (accessibility) */}
+                  <button
+                    onClick={() => handlePlayAudio(message.id + (showingTranslation[message.id] ? '-translation' : ''), displayedText, displayedLang)}
+                    disabled={playingAudio === (message.id + (showingTranslation[message.id] ? '-translation' : ''))}
+                    className="inline-flex items-center space-x-1 px-2 py-1 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-50"
+                    title="Read aloud (accessibility)"
+                  >
+                    <Volume2 size={12} className={playingAudio === (message.id + (showingTranslation[message.id] ? '-translation' : '')) ? 'animate-pulse' : ''} />
+                    <span>
+                      {playingAudio === (message.id + (showingTranslation[message.id] ? '-translation' : ''))
+                        ? 'Playing...'
+                        : 'Listen'}
+                    </span>
+                  </button>
+
+                  {/* Show translation text if toggled */}
+                  {showingTranslation[message.id] && translations[message.id] && (
+                    <div className={`w-full mt-2 p-3 rounded-lg bg-indigo-50 border border-indigo-200 ${isCurrentUser ? 'text-right' : 'text-left'}`}>
+                      <p className="text-xs text-indigo-600 font-medium mb-1">
+                        {messageLang === 'en' ? 'Spanish' : 'English'} translation:
+                      </p>
+                      <p className="text-sm text-indigo-900 whitespace-pre-wrap">{translations[message.id]}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Feedback button for counselor messages */}
             {isCurrentUser && user?.userType === 'counselor' && (

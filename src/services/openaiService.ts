@@ -180,48 +180,42 @@ export class OpenAIService {
   static async generateCulturalResponse(
     userMessage: string,
     culturalBackground: CulturalBackground,
-    conversationHistory: OpenAIMessage[] = []
+    conversationHistory: OpenAIMessage[] = [],
+    preferredLanguage?: 'en' | 'es'
   ): Promise<OpenAIResponse> {
     try {
-      const culturalPrompt = this.CULTURAL_PROMPTS[culturalBackground] || this.CULTURAL_PROMPTS['prefer-not-to-say'];
-      const systemPrompt = this.BASE_SYSTEM_PROMPT + '\n\n' + culturalPrompt;
-
-      const messages: OpenAIMessage[] = [
-        { role: 'system', content: systemPrompt },
-        ...conversationHistory.slice(-6), // Include last 6 messages for context
-        { role: 'user', content: userMessage }
-      ];
-
-      const response = await fetch(this.BASE_URL, {
+      // Call our server-side API route instead of directly calling OpenAI
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${ENV.OPENAI_API_KEY}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: this.MODEL,
-          messages,
-          max_tokens: 150,
-          temperature: 0.7,
-          presence_penalty: 0.1,
-          frequency_penalty: 0.1
+          userMessage,
+          culturalBackground,
+          conversationHistory: conversationHistory.slice(-6), // Include last 6 messages for context
+          preferredLanguage: preferredLanguage || 'en'
         })
       });
 
       if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Chat API error: ${response.status} ${errorData.error || response.statusText}`);
       }
 
       const data = await response.json();
-      const rawContent = data.choices[0].message.content;
-      
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to generate response');
+      }
+
       return {
-        content: this.cleanAIResponse(rawContent),
+        content: data.content,
         model: data.model,
         usage: data.usage
       };
     } catch (error: unknown) {
-      console.error('OpenAI API error:', error);
+      console.error('Chat API error:', error);
       throw new Error('Failed to generate AI response: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   }

@@ -1,6 +1,6 @@
 export type UserType = 'student' | 'counselor' | 'admin';
 
-export type CulturalBackground = 
+export type CulturalBackground =
   | 'african-american'
   | 'african'
   | 'asian-american'
@@ -14,6 +14,10 @@ export type CulturalBackground =
   | 'prefer-not-to-say'
   | 'other';
 
+// Language support for bilingual mediation
+export type Language = 'en' | 'es'; // MVP: English and Spanish
+// Future expansion: 'zh' (Chinese), 'fr' (French), 'ar' (Arabic), 'ko' (Korean)
+
 export interface UserProfile {
   firstName: string;
   lastName: string;
@@ -23,6 +27,7 @@ export interface UserProfile {
 
 export interface StudentProfile {
   culturalBackground?: CulturalBackground;
+  preferredLanguage?: Language; // Language preference for AI responses and communication
   gender?: 'male' | 'female' | 'non-binary' | 'prefer-not-to-say';
   academicYear?: string;
   major?: string;

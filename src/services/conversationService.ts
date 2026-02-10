@@ -18,12 +18,14 @@ import {
   arrayUnion
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { 
-  Conversation, 
-  ConversationMessage, 
+import {
+  Conversation,
+  ConversationMessage,
   ConversationParticipant,
   CulturalBackground,
-  MessagePriority 
+  MessagePriority,
+  Language,
+  User
 } from '../types';
 import { OpenAIService } from './openaiService';
 
@@ -117,7 +119,20 @@ export class ConversationService {
         console.log('Conversation details:', conversation);
         if (conversation && conversation.type === 'ai') {
           console.log('Generating AI response...');
-          await this.generateAIResponse(conversationId, content, conversation.culturalContext);
+
+          // Fetch student's language preference
+          let preferredLanguage: Language | undefined = 'en'; // Default to English
+          try {
+            const studentDoc = await getDoc(doc(db, 'users', conversation.studentId));
+            if (studentDoc.exists()) {
+              const studentData = studentDoc.data() as User;
+              preferredLanguage = studentData.studentProfile?.preferredLanguage || 'en';
+            }
+          } catch (error) {
+            console.warn('Could not fetch student language preference, defaulting to English:', error);
+          }
+
+          await this.generateAIResponse(conversationId, content, conversation.culturalContext, preferredLanguage);
         }
       }
 
@@ -395,7 +410,8 @@ export class ConversationService {
   private static async generateAIResponse(
     conversationId: string,
     userMessage: string,
-    culturalContext: CulturalBackground
+    culturalContext: CulturalBackground,
+    preferredLanguage?: 'en' | 'es'
   ): Promise<void> {
     try {
       // Get conversation history for context
@@ -408,7 +424,8 @@ export class ConversationService {
       const aiResponse = await OpenAIService.generateCulturalResponse(
         userMessage,
         culturalContext,
-        conversationHistory
+        conversationHistory,
+        preferredLanguage
       );
 
       // Send AI response
