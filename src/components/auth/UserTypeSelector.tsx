@@ -52,7 +52,7 @@ export const UserTypeSelector: React.FC<UserTypeSelectorProps> = ({
           Choose Your Role
         </h2>
         <p className="text-gray-600">
-          Select how you&apos;d like to use AIMES to get personalized features
+          Select how you&apos;d like to use CALLM-CARE to get personalized features
         </p>
       </div>
 

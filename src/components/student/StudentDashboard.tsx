@@ -560,7 +560,7 @@ const StudentDashboard: React.FC = () => {
                 <Sparkles size={20} className="text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">AIMES</h1>
+                <h1 className="text-xl font-bold text-gray-900">CALLM-CARE</h1>
                 <p className="text-sm text-gray-600">Student Portal</p>
               </div>
             </div>
@@ -620,7 +620,7 @@ const StudentDashboard: React.FC = () => {
             >
               <Menu size={24} />
             </button>
-            <h1 className="font-semibold text-gray-900">AIMES Student Portal</h1>
+            <h1 className="font-semibold text-gray-900">CALLM-CARE Student Portal</h1>
             <div className="w-6" /> {/* Spacer */}
           </div>
         </div>

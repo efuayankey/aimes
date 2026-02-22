@@ -72,7 +72,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             <LogIn size={32} className="text-white" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome Back</h2>
-          <p className="text-gray-600">Sign in to your AIMES account to continue</p>
+          <p className="text-gray-600">Sign in to your CALLM-CARE account to continue</p>
         </div>
 
         {error && (

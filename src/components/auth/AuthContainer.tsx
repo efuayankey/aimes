@@ -71,10 +71,10 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({ onAuthSuccess }) =
             <Sparkles className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 drop-shadow-xl">
-            AIMES
+            CALLM-CARE
           </h1>
           <p className="text-lg md:text-xl text-white/90 drop-shadow-lg max-w-2xl mx-auto">
-            A culturally adaptive companion for your mental wellness journey
+            Better training for linguistically and culturally responsive mental healthcare.
           </p>
         </div>
 

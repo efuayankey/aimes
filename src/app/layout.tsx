@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AIMES - AI Mental Health Support",
-  description: "Culturally-sensitive mental health support with AI and human counselors",
+  title: "CALLM-CARE - Mental Health Counselor Training",
+  description: "Better training for linguistically and culturally responsive mental healthcare.",
 };
 
 export default function RootLayout({

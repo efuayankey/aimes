@@ -376,7 +376,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
                 </div>
                 
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  Welcome to AIMES!
+                  Welcome to CALLM-CARE!
                 </h2>
                 
                 {registrationResult.needsEmailVerification ? (
@@ -387,7 +387,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                       <p className="text-yellow-800 text-sm">
                         Please check your email and click the verification link to activate your account.
-                        You won&apos;t be able to access AIMES until you verify your email.
+                        You won&apos;t be able to access CALLM-CARE until you verify your email.
                       </p>
                     </div>
                     <button
@@ -406,7 +406,7 @@ export const SignupForm: React.FC<SignupFormProps> = ({
                       onClick={onSuccess}
                       className="bg-teal-600 text-white px-8 py-3 rounded-lg hover:bg-teal-700 transition-colors"
                     >
-                      Continue to AIMES
+                      Continue to CALLM-CARE
                     </button>
                   </div>
                 )}

@@ -143,7 +143,7 @@ export const CulturalBackgroundModal: React.FC<CulturalBackgroundModalProps> = (
             </div>
             <div>
               <h2 className="text-2xl font-bold">
-                {isChanging ? 'Update Your Cultural Background' : 'Welcome to AIMES! 🌟'}
+                {isChanging ? 'Update Your Cultural Background' : 'Welcome to CALLM-CARE!'}
               </h2>
               <p className="text-white/90 mt-1">
                 {isChanging 
@@ -232,7 +232,7 @@ export const CulturalBackgroundModal: React.FC<CulturalBackgroundModalProps> = (
                   <span>{isChanging ? 'Updating...' : 'Saving...'}</span>
                 </div>
               ) : (
-                <span>{isChanging ? 'Update Background' : 'Continue to AIMES'}</span>
+                <span>{isChanging ? 'Update Background' : 'Continue to CALLM-CARE'}</span>
               )}
             </button>
           </div>
