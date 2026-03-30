@@ -561,6 +561,116 @@ export const CBT_TOPICS: CBTTopic[] = [
     },
   },
   {
+    id: 'exposure-therapy',
+    title: 'Exposure Therapy & Brave Practice',
+    shortDescription:
+      'Learn to use the Inhibitory Learning Model to help clients face fears, violate expectations, and build lasting courage through structured exposure.',
+    overview:
+      'Exposure therapy is one of the most evidence-based techniques in CBT for anxiety. Modern exposure therapy is guided by the Inhibitory Learning Model (ILM), which shifts the goal from "calming down" to "learning." The client does not need to feel calm to do a brave thing — they need to discover that the feared outcome did not happen and that they can tolerate the discomfort. As a counselor, your job is to help clients build a Fear Ladder, identify Safety Behaviors that get in the way, and track what they actually learned from each exposure.',
+    cognitiveTriangleConnection:
+      'Exposure therapy primarily targets the "Behaviors" corner of the cognitive triangle, but its power comes from the ripple effect. When a client completes an exposure and the feared outcome does not occur, their automatic thought ("something bad will happen") is directly challenged by lived experience — which is far more powerful than verbal reassurance alone. This updates both the thought and the emotional response for the future.',
+    keyPrinciples: [
+      'The goal of exposure is LEARNING, not calming down — anxiety during the exposure is expected and necessary',
+      'Inhibitory Learning: the brain learns safety by experiencing the feared situation WITHOUT the feared outcome occurring',
+      'Expectancy Violation: always ask "what do you think will happen?" before, and "did it happen?" after',
+      'Safety Behaviors (avoidance, distraction, reassurance-seeking) must be identified and removed — they prevent real learning',
+      'The Fear Ladder ranks feared situations from least to most scary — start at the bottom',
+      'Anxiety is like a false fire alarm: loud and uncomfortable, but not actually dangerous',
+    ],
+    steps: [
+      'Introduce the False Alarm metaphor: "Anxiety is like a smoke detector going off while you\'re making toast. It\'s loud and annoying, but there\'s no fire."',
+      'Explain the learning goal: "We\'re not trying to make you calm. We\'re trying to teach your brain that you are safe and that you can handle the discomfort."',
+      'Build a Fear Ladder together: list feared situations and rank them 1-10 by difficulty',
+      'Before each exposure, ask: "What specific bad thing do you think will happen? Rate how likely (0-100%)."',
+      'During the exposure, coach the client to stay present and resist Safety Behaviors',
+      'After the exposure, debrief: "Did the bad thing happen? What did you actually learn from this?"',
+    ],
+    examples: [
+      {
+        concern: 'Social Anxiety',
+        scenario:
+          'Client is terrified of asking someone a question in public in case they look foolish.',
+        counselorExample:
+          '"Before you go up and ask the librarian, tell me — what specifically do you think is going to happen? How likely is it, 0 to 100%?" (Client: "I think they\'ll look at me like I\'m stupid. Maybe 70%.") "Okay. Let\'s find out. After you do it, we\'ll check: did they look at you like that? What did you actually learn?"',
+        explanation:
+          'This uses Expectancy Violation Tracking — capturing the feared outcome before the exposure and checking it against reality after. The client\'s brain learns from the mismatch, not from being told it will be fine.',
+      },
+      {
+        concern: 'Separation Anxiety',
+        scenario:
+          'A young client is distressed when a parent leaves the room.',
+        counselorExample:
+          '"I know it feels scary when your parent goes to wait in the car. Let\'s try it for 5 minutes. You don\'t have to feel okay about it — you just have to see what actually happens. What\'s the worst thing you think will happen while they\'re gone?"',
+        explanation:
+          'This validates the anxiety, sets a time-limited exposure, and primes Expectancy Violation by naming the feared outcome before it is tested.',
+      },
+      {
+        concern: 'Health/Vomit Anxiety',
+        scenario:
+          'Client avoids anything related to sickness due to intense fear of vomiting.',
+        counselorExample:
+          '"We\'re going to start at the bottom of your Fear Ladder — just looking at a cartoon image of someone feeling sick. I know that sounds gross. But the goal isn\'t for you to enjoy it. The goal is to find out: can you handle the discomfort? What do you predict will happen when you see it?"',
+        explanation:
+          'This introduces graded exposure starting at the least threatening step, while framing the goal as tolerance and learning rather than comfort.',
+      },
+    ],
+    exercises: [
+      {
+        scenario:
+          'A student tells you: "I know I need to go to the group study session but I always find an excuse not to go. Last time I said I had a headache. The time before that I said I had to call my mom. I know I\'m doing it but I can\'t stop."',
+        instructions:
+          'This student is describing classic avoidance and Safety Behaviors. Write a response that: (1) names what is happening without judgment, (2) explains why avoidance is making things worse, and (3) collaboratively builds the first step of a Fear Ladder.',
+        hints: [
+          'Name the avoidance pattern gently — "It sounds like part of you keeps finding ways out"',
+          'Explain the cost: avoidance removes discomfort short-term but keeps the fear alive long-term',
+          'Ask what the easiest version of attending would look like (Fear Ladder step 1)',
+          'Introduce Expectancy Violation: "What do you think will happen if you go?"',
+        ],
+        skillFocus: 'Identifying avoidance patterns and introducing the Fear Ladder',
+      },
+      {
+        scenario:
+          'You are running an exposure exercise with a student who is anxious about eating in the dining hall. Mid-way through, their anxiety is at a 9/10 and they say: "Okay, I think I\'ve done enough. Can we stop? I\'m really upset."',
+        instructions:
+          'This is the "Premature Ending" trap — one of the most common counselor mistakes in exposure work. Write a response that compassionately but firmly keeps the student in the exposure. Stopping now would teach their brain that the anxiety was dangerous.',
+        hints: [
+          'Validate how hard it is — "I know this is really uncomfortable"',
+          'Do NOT say "okay, we can stop" — that reinforces the fear',
+          'Remind them of the goal: "We\'re not waiting for calm — we\'re waiting for learning"',
+          'Remind them that the anxiety will peak and come down naturally if they stay',
+          'Ask: "What\'s the specific bad thing you\'re afraid will happen right now?"',
+        ],
+        skillFocus: 'Managing the Premature Ending trap in exposure therapy',
+      },
+      {
+        scenario:
+          'After completing an exposure (speaking up in a seminar), a student says: "I did it, but I was shaking the whole time and I could tell people noticed. It was awful." They rated pre-exposure fear at 80%, and they expected people to laugh at them.',
+        instructions:
+          'Lead the student through a full Expectancy Violation debrief. Help them examine what they predicted vs. what actually happened, and extract the learning — even though it felt awful.',
+        hints: [
+          'Start with what they predicted: "You thought people would laugh. Did they?"',
+          'Help them separate feeling anxious from something bad actually happening',
+          'Ask: "So what did you actually learn from doing that?"',
+          'Reinforce that shaking and speaking is still success — anxiety doesn\'t mean failure',
+          'Preview the next step up the Fear Ladder',
+        ],
+        skillFocus: 'Expectancy Violation debrief and extracting learning from exposures',
+      },
+    ],
+    simulatorContext: {
+      suggestedConcern: 'anxiety',
+      objective:
+        'Practice guiding a patient through the early stages of exposure therapy. Build a Fear Ladder together, introduce the False Alarm metaphor, and use Expectancy Violation Tracking before and after a brave practice.',
+      tips: [
+        'Introduce the False Alarm metaphor early to reframe anxiety',
+        'Ask "what do you think will happen?" before any brave action',
+        'Watch for Safety Behaviors — avoidance, reassurance-seeking, distraction',
+        'After the brave action, always ask "did the bad thing happen? What did you learn?"',
+        'Do not let the patient stop when anxiety peaks — stay until they learn something',
+      ],
+    },
+  },
+  {
     id: 'wrapping-up',
     title: 'Wrapping Up Sessions',
     shortDescription:

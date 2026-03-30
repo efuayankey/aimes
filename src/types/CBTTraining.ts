@@ -6,6 +6,7 @@ export type CBTTopicId =
   | 'thought-records'
   | 'challenging-thoughts'
   | 'behavioral-activation'
+  | 'exposure-therapy'
   | 'wrapping-up';
 
 export interface CBTExampleByContext {

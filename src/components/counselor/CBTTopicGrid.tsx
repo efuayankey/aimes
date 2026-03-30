@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Target, FileText, RefreshCw, Activity, CheckSquare } from 'lucide-react';
+import { Search, Target, FileText, RefreshCw, Activity, CheckSquare, Flame } from 'lucide-react';
 import { CBTTopicId } from '../../types/CBTTraining';
 import { CBT_OVERVIEW, CBT_TOPICS } from '../../data/cbtTopics';
 
@@ -13,6 +13,7 @@ const TOPIC_ICONS: Record<CBTTopicId, React.ReactNode> = {
   'thought-records': <FileText size={24} />,
   'challenging-thoughts': <RefreshCw size={24} />,
   'behavioral-activation': <Activity size={24} />,
+  'exposure-therapy': <Flame size={24} />,
   'wrapping-up': <CheckSquare size={24} />,
 };
 
@@ -22,6 +23,7 @@ const TOPIC_COLORS: Record<CBTTopicId, { bg: string; border: string; icon: strin
   'thought-records': { bg: 'bg-indigo-50', border: 'border-indigo-200', icon: 'bg-indigo-600', hover: 'hover:border-indigo-400' },
   'challenging-thoughts': { bg: 'bg-purple-50', border: 'border-purple-200', icon: 'bg-purple-600', hover: 'hover:border-purple-400' },
   'behavioral-activation': { bg: 'bg-orange-50', border: 'border-orange-200', icon: 'bg-orange-600', hover: 'hover:border-orange-400' },
+  'exposure-therapy': { bg: 'bg-red-50', border: 'border-red-200', icon: 'bg-red-600', hover: 'hover:border-red-400' },
   'wrapping-up': { bg: 'bg-green-50', border: 'border-green-200', icon: 'bg-green-600', hover: 'hover:border-green-400' },
 };
 
