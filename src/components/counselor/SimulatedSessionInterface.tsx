@@ -82,6 +82,8 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const [showingTranslation, setShowingTranslation] = useState<Record<string, boolean>>({});
   const [translating, setTranslating] = useState<Record<string, boolean>>({});
+  const [showAllSpanish, setShowAllSpanish] = useState(false);
+  const [isTranslatingAll, setIsTranslatingAll] = useState(false);
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -164,7 +166,10 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
       setSessionEndConfidence(null);
       setCounselorInput('');
       setShowPatientSelection(false);
-      
+      setShowAllSpanish(false);
+      setTranslations({});
+      setShowingTranslation({});
+
       console.log('Started new training session with patient:', patient.name);
     } catch (error) {
       console.error('Failed to start training session:', error);
@@ -421,6 +426,41 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
     }
   };
 
+  // Handle global Spanish toggle — translates all messages at once
+  const handleGlobalSpanishToggle = async () => {
+    if (showAllSpanish) {
+      setShowAllSpanish(false);
+      return;
+    }
+
+    setIsTranslatingAll(true);
+
+    // Fetch translations for any message that doesn't have one yet
+    await Promise.all(
+      messages.map(async (message) => {
+        if (translations[message.id]) return;
+        const lang = detectLanguage(message.content);
+        if (lang === 'es') return; // already Spanish
+        try {
+          const response = await fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: message.content, sourceLanguage: 'en', targetLanguage: 'es' })
+          });
+          const data = await response.json();
+          if (data.success) {
+            setTranslations(prev => ({ ...prev, [message.id]: data.translation }));
+          }
+        } catch {
+          // skip failed translations silently
+        }
+      })
+    );
+
+    setIsTranslatingAll(false);
+    setShowAllSpanish(true);
+  };
+
   // Handle text-to-speech playback for accessibility
   const handlePlayAudio = async (messageId: string, text: string, language: 'en' | 'es') => {
     try {
@@ -522,6 +562,17 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
           >
             <Settings className="w-4 h-4" />
           </button>
+
+          {sessionActive && currentPatient?.culturalBackground === 'latino-hispanic' && (
+            <button
+              onClick={handleGlobalSpanishToggle}
+              disabled={isTranslatingAll}
+              className="flex items-center space-x-1 px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50"
+            >
+              <Languages className="w-4 h-4" />
+              <span>{isTranslatingAll ? 'Translating...' : showAllSpanish ? 'Hide Spanish' : 'Show Spanish'}</span>
+            </button>
+          )}
 
           {sessionActive && (
             <button
@@ -839,25 +890,8 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
                       </div>
                     </div>
 
-                    {/* Translation and Audio controls */}
+                    {/* Audio controls */}
                     <div className={`mt-2 flex flex-wrap items-center gap-2 ${message.senderType === 'counselor' ? 'justify-end' : 'justify-start'}`}>
-                      {/* Translation toggle */}
-                      <button
-                        onClick={() => handleTranslateToggle(message.id, message.content, messageLang)}
-                        disabled={translating[message.id]}
-                        className="inline-flex items-center space-x-1 px-2 py-1 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-50"
-                        title={showingTranslation[message.id] ? "Show original" : `Translate to ${messageLang === 'en' ? 'Spanish' : 'English'}`}
-                      >
-                        <Languages size={12} />
-                        <span>
-                          {translating[message.id]
-                            ? 'Translating...'
-                            : showingTranslation[message.id]
-                            ? 'Show original'
-                            : `Show ${messageLang === 'en' ? 'Spanish' : 'English'}`}
-                        </span>
-                      </button>
-
                       {/* Audio read-aloud */}
                       <button
                         onClick={() => {
@@ -878,12 +912,10 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
                       </button>
                     </div>
 
-                    {/* Show translation text if toggled */}
-                    {showingTranslation[message.id] && translations[message.id] && (
+                    {/* Show Spanish translation if global toggle is on */}
+                    {showAllSpanish && translations[message.id] && (
                       <div className={`mt-2 p-3 rounded-lg bg-indigo-50 border border-indigo-200 ${message.senderType === 'counselor' ? 'text-right' : 'text-left'}`}>
-                        <p className="text-xs text-indigo-600 font-medium mb-1">
-                          {messageLang === 'en' ? 'Spanish' : 'English'} translation:
-                        </p>
+                        <p className="text-xs text-indigo-600 font-medium mb-1">Spanish translation:</p>
                         <p className="text-sm text-indigo-900 whitespace-pre-wrap">{translations[message.id]}</p>
                       </div>
                     )}
