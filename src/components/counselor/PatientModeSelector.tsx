@@ -227,7 +227,7 @@ export const PatientModeSelector: React.FC<PatientModeSelectorProps> = ({
         ) : (
           <button className="flex-1 flex items-center justify-center space-x-2 px-4 py-3 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors">
             <Brain className="w-4 h-4" />
-            <span>Open CBT Training</span>
+            <span>CBT Training</span>
           </button>
         )}
 
