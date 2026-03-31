@@ -139,7 +139,7 @@ const MessageHistory: React.FC<{ onUnreadCountChange?: () => void }> = ({ onUnre
                     <div className="flex items-start space-x-3">
                       <div className="w-8 h-8 bg-gradient-to-r from-teal-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
                         <span className="text-white font-medium text-sm">
-                          {(user?.firstName || user?.profile?.firstName)?.charAt(0) || 'Y'}
+                          {user?.profile?.firstName?.charAt(0) || 'Y'}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
@@ -364,7 +364,7 @@ const StudentDashboard: React.FC = () => {
       {/* Welcome Message */}
       <div className="bg-gradient-to-r from-teal-600 to-blue-600 rounded-2xl p-8 text-white">
         <h1 className="text-3xl font-bold mb-2">
-          Welcome back, {user?.firstName || user?.profile?.firstName}!
+          Welcome back, {user?.profile?.firstName}!
         </h1>
         <p className="text-teal-100 mb-4">
           Your mental health companion is here to support you with culturally-aware guidance.
@@ -581,12 +581,12 @@ const StudentDashboard: React.FC = () => {
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
               <span className="text-white font-medium text-sm">
-                {(user?.firstName || user?.profile?.firstName)?.charAt(0) || 'U'}
+                {user?.profile?.firstName?.charAt(0) || 'U'}
               </span>
             </div>
             <div>
               <p className="font-medium text-gray-900">
-                {user?.firstName || user?.profile?.firstName} {user?.lastName || user?.profile?.lastName}
+                {user?.profile?.firstName} {user?.profile?.lastName}
               </p>
               <p className="text-sm text-gray-500">Student</p>
             </div>

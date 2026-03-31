@@ -293,6 +293,16 @@ export const CULTURAL_BACKGROUNDS_INFO = {
     commonFactors: ['identity navigation', 'belonging questions', 'family dynamics', 'cultural code-switching'],
     sensitivities: ['identity validation', 'cultural authenticity', 'discrimination'],
     strengths: ['cultural adaptability', 'multiple perspectives', 'bridge-building']
+  },
+  'prefer-not-to-say': {
+    commonFactors: ['privacy concerns', 'identity complexity', 'personal boundaries'],
+    sensitivities: ['respect for privacy', 'avoiding assumptions', 'identity pressure'],
+    strengths: ['self-advocacy', 'boundary-setting', 'personal autonomy']
+  },
+  'other': {
+    commonFactors: ['unique cultural identity', 'intersectionality', 'diverse experiences'],
+    sensitivities: ['cultural assumptions', 'stereotyping', 'misrepresentation'],
+    strengths: ['unique perspective', 'resilience', 'cultural pride']
   }
 } as const;
 

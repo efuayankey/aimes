@@ -356,6 +356,17 @@ const CounselorFeedbackDashboard: React.FC<CounselorFeedbackDashboardProps> = ({
     }
   };
 
+  const renderTrendIcon = (trend: 'improving' | 'stable' | 'declining') => {
+    switch (trend) {
+      case 'improving':
+        return <TrendingUp className="w-8 h-8 text-orange-200" />;
+      case 'declining':
+        return <TrendingUp className="w-8 h-8 text-orange-200 transform rotate-180" />;
+      default:
+        return <Target className="w-8 h-8 text-orange-200" />;
+    }
+  };
+
   const loadTrainingData = async () => {
     if (!currentCounselorId) return;
     

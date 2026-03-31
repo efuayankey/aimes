@@ -106,16 +106,20 @@ export class JournalService {
   static async updateEntry(entryId: string, updates: Partial<JournalDraft>): Promise<void> {
     try {
       const updateData: Partial<JournalEntry> = { ...updates };
-      
+
       if (updates.content) {
         const wordCount = updates.content.split(/\s+/).filter(word => word.length > 0).length;
         updateData.wordCount = wordCount;
         updateData.estimatedReadTime = Math.max(1, Math.ceil(wordCount / 200));
       }
-      
-      updateData.lastModified = Timestamp.fromDate(new Date());
 
-      await updateDoc(doc(db, this.COLLECTION_NAME, entryId), updateData);
+      // Use a separate object for Firestore to avoid assigning Timestamp to a Date-typed field
+      const firestoreUpdateData = {
+        ...updateData,
+        lastModified: Timestamp.fromDate(new Date())
+      };
+
+      await updateDoc(doc(db, this.COLLECTION_NAME, entryId), firestoreUpdateData);
     } catch (error: Error | unknown) {
       console.error('Failed to update journal entry:', error);
       throw new Error('Failed to update journal entry: ' + error.message);
