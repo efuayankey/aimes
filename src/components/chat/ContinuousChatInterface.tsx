@@ -23,6 +23,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { ConversationService } from '../../services/conversationService';
 import { ExportService } from '../../services/exportService';
 import { ConversationOutcomeService, ConversationOutcome } from '../../services/conversationOutcomeService';
+import { SpanishProficiencyService } from '../../services/spanishProficiencyService';
 import { Conversation, ConversationMessage } from '../../types';
 import FeedbackInterface from '../counselor/FeedbackInterface';
 
@@ -191,23 +192,29 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
 
   const handleEndConversation = async () => {
     if (!user?.uid || user.userType !== 'counselor') return;
-    
+
     try {
       setIsEndingConversation(true);
-      
+
       // Run comprehensive conversation analysis
       const outcome = await ConversationOutcomeService.analyzeCompleteConversation(
         conversation,
         messages
       );
-      
-      // Mark conversation as analyzed (but keep it active)
-      // await ConversationService.markConversationComplete(conversation.id, user.uid);
-      
+
+      // If this was a Latino/Hispanic session, analyze Spanish proficiency
+      if (conversation.culturalContext === 'latino-hispanic') {
+        SpanishProficiencyService.analyzeSession(
+          user.uid,
+          conversation.id,
+          messages.map(m => ({ content: m.content, senderType: m.senderType }))
+        ).catch(err => console.error('Spanish proficiency analysis failed silently:', err));
+      }
+
       setConversationOutcome(outcome);
       setShowEndConversationModal(false);
       setShowOutcomeAnalysis(true);
-      
+
     } catch (error) {
       console.error('Failed to end conversation:', error);
       alert('Failed to analyze conversation. Please try again.');
