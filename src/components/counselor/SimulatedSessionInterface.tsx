@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   User,
   Clock,
@@ -29,6 +29,25 @@ import { TrainingSessionService } from '../../services/trainingSessionService';
 import { useAuth } from '../../contexts/AuthContext';
 import { ConversationFeedback } from '../../types/Feedback';
 import { CulturalBackground } from '../../types/User';
+
+// Language the transcript is mirrored into. 'es' renders every English turn in
+// Spanish; 'en' renders every Spanish turn in English; null hides translations.
+type TranslationTarget = 'es' | 'en';
+
+// Detect the language of a message (simple heuristic).
+// Compares how many markers of each language appear rather than tripping on a
+// single hit, so a mostly-English turn with a Spanish phrase in it still reads
+// as English and still gets translated. Pure, so it lives outside the component
+// and stays usable by anything in it regardless of declaration order.
+const detectLanguage = (text: string): 'en' | 'es' => {
+  const spanishMarkers = /[¿¡ñáéíóú]|\b(que|de|la|el|los|las|un|una|por|para|con|pero|porque|cuando|como|muy|más|mi|tu|su|yo|soy|eres|es|está|estoy|estás|sí|hola|gracias|siento|puedo|quiero|tengo|hacer|todo|nada|bien|familia|hermana|hermano)\b/gi;
+  const englishMarkers = /\b(the|and|is|are|was|were|to|of|in|it|that|this|you|i|my|me|for|with|but|not|have|has|feel|feeling|about|just|really|like|know|think|don't|i'm|it's|can't)\b/gi;
+
+  const spanishHits = (text.match(spanishMarkers) || []).length;
+  const englishHits = (text.match(englishMarkers) || []).length;
+
+  return spanishHits > englishHits ? 'es' : 'en';
+};
 
 interface CBTSimulatorContext {
   suggestedConcern: string;
@@ -79,11 +98,12 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Translation state for bilingual mediation
+  const [translationTarget, setTranslationTarget] = useState<TranslationTarget | null>(null);
+  // Keyed by `${messageId}:${target}` so both directions can be cached at once.
   const [translations, setTranslations] = useState<Record<string, string>>({});
-  const [showingTranslation, setShowingTranslation] = useState<Record<string, boolean>>({});
-  const [translating, setTranslating] = useState<Record<string, boolean>>({});
-  const [showAllSpanish, setShowAllSpanish] = useState(false);
-  const [isTranslatingAll, setIsTranslatingAll] = useState(false);
+  const [pendingTranslations, setPendingTranslations] = useState(0);
+  const inFlightTranslations = useRef<Set<string>>(new Set());
+  const isTranslatingAll = pendingTranslations > 0;
 
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -166,9 +186,10 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
       setSessionEndConfidence(null);
       setCounselorInput('');
       setShowPatientSelection(false);
-      setShowAllSpanish(false);
+      setTranslationTarget(null);
       setTranslations({});
-      setShowingTranslation({});
+      inFlightTranslations.current.clear();
+      setPendingTranslations(0);
 
       console.log('Started new training session with patient:', patient.name);
     } catch (error) {
@@ -236,7 +257,9 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
         currentPatient,
         updatedMessages,
         counselorInput,
-        cbtContextString
+        cbtContextString,
+        // Answer in whichever language the counselor just used.
+        detectLanguage(counselorMessage.content)
       );
 
       const patientMessage: SimulationMessage = {
@@ -367,98 +390,70 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
     }
   };
 
-  // Detect language of message (simple heuristic)
-  const detectLanguage = (text: string): 'en' | 'es' => {
-    // Simple Spanish detection: check for common Spanish words/patterns
-    const spanishPattern = /\b(el|la|los|las|un|una|de|que|en|por|para|con|mi|tu|su|soy|eres|está|están|¿|¡)\b/i;
-    return spanishPattern.test(text) ? 'es' : 'en';
-  };
+  // Fetch one message's translation into the target language.
+  // In-flight keys are tracked in a ref so the auto-translate effect below can
+  // re-run freely without firing duplicate requests for the same message.
+  const fetchTranslation = useCallback(async (message: SimulationMessage, target: TranslationTarget) => {
+    const key = `${message.id}:${target}`;
+    if (inFlightTranslations.current.has(key)) return;
 
-  // Handle translation toggle
-  const handleTranslateToggle = async (messageId: string, text: string, currentLang: 'en' | 'es') => {
-    // If already showing translation, just toggle it off
-    if (showingTranslation[messageId]) {
-      setShowingTranslation(prev => ({ ...prev, [messageId]: false }));
-      return;
-    }
+    inFlightTranslations.current.add(key);
+    setPendingTranslations(count => count + 1);
 
-    // If we already have the translation, just show it
-    if (translations[messageId]) {
-      setShowingTranslation(prev => ({ ...prev, [messageId]: true }));
-      return;
-    }
+    // Spanish marks gender on words referring to people, so the translator needs to
+    // know who is talking and who is being talked to. Only the patient's gender is
+    // known — counselor profiles do not record one — so the other side is omitted
+    // rather than guessed.
+    const patientGender = currentPatient?.gender;
+    const speakerGender = message.senderType === 'patient' ? patientGender : undefined;
+    const addresseeGender = message.senderType === 'counselor' ? patientGender : undefined;
 
-    // Otherwise, fetch the translation
     try {
-      setTranslating(prev => ({ ...prev, [messageId]: true }));
-
-      const targetLang = currentLang === 'en' ? 'es' : 'en';
-
       const response = await fetch('/api/translate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          text,
-          sourceLanguage: currentLang,
-          targetLanguage: targetLang
+          text: message.content,
+          sourceLanguage: target === 'es' ? 'en' : 'es',
+          targetLanguage: target,
+          speakerGender,
+          addresseeGender
         })
       });
 
-      if (!response.ok) {
-        throw new Error('Translation failed');
-      }
-
       const data = await response.json();
-
       if (data.success) {
-        setTranslations(prev => ({ ...prev, [messageId]: data.translation }));
-        setShowingTranslation(prev => ({ ...prev, [messageId]: true }));
-      } else {
-        throw new Error(data.error || 'Translation failed');
+        setTranslations(prev => ({ ...prev, [key]: data.translation }));
       }
-    } catch (error) {
-      console.error('Translation error:', error);
-      alert('Failed to translate message. Please try again.');
+    } catch {
+      // Leave the key untranslated; the effect retries on the next turn.
     } finally {
-      setTranslating(prev => ({ ...prev, [messageId]: false }));
+      inFlightTranslations.current.delete(key);
+      setPendingTranslations(count => count - 1);
     }
-  };
+  }, [currentPatient]);
 
-  // Handle global Spanish toggle — translates all messages at once
-  const handleGlobalSpanishToggle = async () => {
-    if (showAllSpanish) {
-      setShowAllSpanish(false);
-      return;
-    }
+  // Keep translations in sync with the transcript. Runs on every new message so
+  // a turn that arrives while translation is on gets rendered immediately —
+  // no more toggling off and back on for each speaking turn.
+  useEffect(() => {
+    if (!translationTarget) return;
 
-    setIsTranslatingAll(true);
+    messages.forEach(message => {
+      const key = `${message.id}:${translationTarget}`;
+      if (translations[key]) return;
+      if (inFlightTranslations.current.has(key)) return;
+      // Nothing to show if the turn is already in the target language.
+      if (detectLanguage(message.content) === translationTarget) return;
 
-    // Fetch translations for any message that doesn't have one yet
-    await Promise.all(
-      messages.map(async (message) => {
-        if (translations[message.id]) return;
-        const lang = detectLanguage(message.content);
-        if (lang === 'es') return; // already Spanish
-        try {
-          const response = await fetch('/api/translate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: message.content, sourceLanguage: 'en', targetLanguage: 'es' })
-          });
-          const data = await response.json();
-          if (data.success) {
-            setTranslations(prev => ({ ...prev, [message.id]: data.translation }));
-          }
-        } catch {
-          // skip failed translations silently
-        }
-      })
-    );
+      void fetchTranslation(message, translationTarget);
+    });
+  }, [messages, translationTarget, translations, fetchTranslation]);
 
-    setIsTranslatingAll(false);
-    setShowAllSpanish(true);
+  // Switch the transcript's translation language, or turn it off by re-clicking
+  // the language that is already active.
+  const handleTranslationTargetToggle = (target: TranslationTarget) => {
+    setTranslationTarget(prev => (prev === target ? null : target));
   };
 
   // Handle text-to-speech playback for accessibility
@@ -521,8 +516,11 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 h-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      {/* Header. Sticky because this panel grows with the transcript instead of
+          scrolling internally — h-full resolves to auto since the dashboard gives
+          it no height — so an unpinned header scrolls out of reach in a long
+          session, taking the translation buttons with it. */}
+      <div className="sticky top-0 z-20 flex items-center justify-between p-4 bg-white border-b border-gray-200 rounded-t-lg">
         <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
@@ -564,14 +562,34 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
           </button>
 
           {sessionActive && currentPatient?.culturalBackground === 'latino-hispanic' && (
-            <button
-              onClick={handleGlobalSpanishToggle}
-              disabled={isTranslatingAll}
-              className="flex items-center space-x-1 px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50"
-            >
-              <Languages className="w-4 h-4" />
-              <span>{isTranslatingAll ? 'Translating...' : showAllSpanish ? 'Hide Spanish' : 'Show Spanish'}</span>
-            </button>
+            <div className="flex items-center space-x-2">
+              {(['es', 'en'] as TranslationTarget[]).map(target => {
+                const isActive = translationTarget === target;
+                const languageName = target === 'es' ? 'Spanish' : 'English';
+
+                return (
+                  <button
+                    key={target}
+                    onClick={() => handleTranslationTargetToggle(target)}
+                    disabled={isTranslatingAll}
+                    className={`flex items-center space-x-1 px-4 py-2 text-sm rounded-lg transition-colors font-medium disabled:opacity-50 ${
+                      isActive
+                        ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                        : 'bg-white text-indigo-700 border border-indigo-300 hover:bg-indigo-50'
+                    }`}
+                  >
+                    <Languages className="w-4 h-4" />
+                    <span>
+                      {isActive && isTranslatingAll
+                        ? 'Translating...'
+                        : isActive
+                        ? `Hide ${languageName}`
+                        : `Show ${languageName}`}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           )}
 
           {sessionActive && (
@@ -867,6 +885,13 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
           <>
             {messages.map((message) => {
               const messageLang = detectLanguage(message.content);
+              const translation = translationTarget
+                ? translations[`${message.id}:${translationTarget}`]
+                : undefined;
+              // Read aloud whatever is on screen: the translation when one is shown.
+              const displayedText = translation || message.content;
+              const displayedLang: 'en' | 'es' = translation && translationTarget ? translationTarget : messageLang;
+              const audioId = message.id + (translation ? `-${translationTarget}` : '');
               return (
                 <div
                   key={message.id}
@@ -894,29 +919,23 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
                     <div className={`mt-2 flex flex-wrap items-center gap-2 ${message.senderType === 'counselor' ? 'justify-end' : 'justify-start'}`}>
                       {/* Audio read-aloud */}
                       <button
-                        onClick={() => {
-                          const displayedText = showingTranslation[message.id] ? translations[message.id] : message.content;
-                          const displayedLang = showingTranslation[message.id] ? (messageLang === 'en' ? 'es' : 'en') : messageLang;
-                          handlePlayAudio(message.id + (showingTranslation[message.id] ? '-translation' : ''), displayedText, displayedLang);
-                        }}
-                        disabled={playingAudio === (message.id + (showingTranslation[message.id] ? '-translation' : ''))}
+                        onClick={() => handlePlayAudio(audioId, displayedText, displayedLang)}
+                        disabled={playingAudio === audioId}
                         className="inline-flex items-center space-x-1 px-2 py-1 text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-50"
                         title="Read aloud (accessibility)"
                       >
-                        <Volume2 size={12} className={playingAudio === (message.id + (showingTranslation[message.id] ? '-translation' : '')) ? 'animate-pulse' : ''} />
-                        <span>
-                          {playingAudio === (message.id + (showingTranslation[message.id] ? '-translation' : ''))
-                            ? 'Playing...'
-                            : 'Listen'}
-                        </span>
+                        <Volume2 size={12} className={playingAudio === audioId ? 'animate-pulse' : ''} />
+                        <span>{playingAudio === audioId ? 'Playing...' : 'Listen'}</span>
                       </button>
                     </div>
 
-                    {/* Show Spanish translation if global toggle is on */}
-                    {showAllSpanish && translations[message.id] && (
+                    {/* Translation into the selected language, if available */}
+                    {translation && (
                       <div className={`mt-2 p-3 rounded-lg bg-indigo-50 border border-indigo-200 ${message.senderType === 'counselor' ? 'text-right' : 'text-left'}`}>
-                        <p className="text-xs text-indigo-600 font-medium mb-1">Spanish translation:</p>
-                        <p className="text-sm text-indigo-900 whitespace-pre-wrap">{translations[message.id]}</p>
+                        <p className="text-xs text-indigo-600 font-medium mb-1">
+                          {translationTarget === 'es' ? 'Spanish translation:' : 'English translation:'}
+                        </p>
+                        <p className="text-sm text-indigo-900 whitespace-pre-wrap">{translation}</p>
                       </div>
                     )}
                   </div>

@@ -72,15 +72,18 @@ export class PatientSimulationService {
     patient: SimulatedPatient,
     conversationHistory: SimulationMessage[],
     counselorMessage: string,
-    additionalSystemContext?: string
+    additionalSystemContext?: string,
+    counselorLanguage: 'en' | 'es' = 'en'
   ): Promise<string> {
     try {
-      const prompt = this.buildPatientPrompt(patient, conversationHistory, counselorMessage);
+      const prompt = this.buildPatientPrompt(patient, conversationHistory, counselorMessage, counselorLanguage);
 
       let systemPrompt = this.getPatientSystemPrompt();
       if (additionalSystemContext) {
         systemPrompt += '\n\nADDITIONAL CONTEXT:\n' + additionalSystemContext;
       }
+      // Stated last so it is the final word in the system prompt.
+      systemPrompt += '\n\n' + this.getLanguageInstruction(counselorLanguage);
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4',
@@ -102,15 +105,34 @@ export class PatientSimulationService {
       return this.cleanPatientResponse(rawResponse);
     } catch (error: unknown) {
       console.error('Failed to generate patient response:', error);
-      return this.getFallbackResponse(patient, counselorMessage);
+      return this.getFallbackResponse(patient, counselorMessage, counselorLanguage);
     }
+  }
+
+  // Tie the patient's language to the counselor's. Without this the prompt said
+  // nothing about language at all, so the model mirrored the counselor only by
+  // chance — a session conducted in Spanish would come back in English, or flip
+  // between the two mid-conversation.
+  private static getLanguageInstruction(counselorLanguage: 'en' | 'es'): string {
+    if (counselorLanguage === 'es') {
+      return `LANGUAGE:
+The counselor is speaking Spanish, so respond in Spanish — every sentence of it.
+Do not answer in English, do not translate yourself, and do not remark on which
+language is being used. Dropping in an English word the way a bilingual student
+naturally would is fine, but the response itself must be Spanish.`;
+    }
+
+    return `LANGUAGE:
+The counselor is speaking English, so respond in English. A Spanish word or phrase
+where it would come naturally is fine, but the response itself must be English.`;
   }
 
   // Build the patient persona prompt
   private static buildPatientPrompt(
     patient: SimulatedPatient, 
     conversationHistory: SimulationMessage[], 
-    counselorMessage: string
+    counselorMessage: string,
+    counselorLanguage: 'en' | 'es' = 'en'
   ): string {
     const culturalInfo = CULTURAL_BACKGROUNDS_INFO[patient.culturalBackground];
     const personaPrompt = this.getPersonaPrompt(patient);
@@ -144,6 +166,7 @@ RESPONSE GUIDELINES:
 4. Reference cultural elements naturally when relevant
 5. React to how well the counselor understands your cultural context
 6. Keep response conversational and realistic (2-4 sentences typically)
+7. Write the response in ${counselorLanguage === 'es' ? 'Spanish' : 'English'}, matching the language the counselor used
 
 Generate ${patient.name}'s response to the counselor's message:
     `.trim();
@@ -357,14 +380,28 @@ Your goal is to provide realistic training scenarios that help counselors improv
       .trim();
   }
 
-  private static getFallbackResponse(_patient: SimulatedPatient, _counselorMessage: string): string {
-    // Parameters reserved for future enhanced fallback logic
-    const fallbacks = [
-      "I'm not sure how to respond to that right now.",
-      "Could you help me understand what you mean?",
-      "That's interesting... I need a moment to think about that.",
-      "I appreciate you asking, but I'm feeling a bit overwhelmed."
-    ];
+  private static getFallbackResponse(
+    _patient: SimulatedPatient,
+    _counselorMessage: string,
+    counselorLanguage: 'en' | 'es' = 'en'
+  ): string {
+    // Fallbacks have to match the session's language as well. An English fallback
+    // mid-Spanish session reads as the patient abruptly switching languages, which
+    // is the behaviour this change exists to stop.
+    // The Spanish lines deliberately avoid gendered adjectives so they fit any patient.
+    const fallbacks = counselorLanguage === 'es'
+      ? [
+          "No sé cómo responder a eso ahora mismo.",
+          "¿Me puedes explicar un poco más lo que quieres decir?",
+          "Eso es interesante... necesito un momento para pensarlo.",
+          "Gracias por preguntar, pero todo esto me está costando un poco."
+        ]
+      : [
+          "I'm not sure how to respond to that right now.",
+          "Could you help me understand what you mean?",
+          "That's interesting... I need a moment to think about that.",
+          "I appreciate you asking, but I'm feeling a bit overwhelmed."
+        ];
     return fallbacks[Math.floor(Math.random() * fallbacks.length)];
   }
 

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { ConversationService } from '../../services/conversationService';
+import { AuthService } from '../../services/authService';
 import { ExportService } from '../../services/exportService';
 import { ConversationOutcomeService, ConversationOutcome } from '../../services/conversationOutcomeService';
 import { SpanishProficiencyService } from '../../services/spanishProficiencyService';
@@ -64,6 +65,9 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const [showingTranslation, setShowingTranslation] = useState<Record<string, boolean>>({});
   const [translating, setTranslating] = useState<Record<string, boolean>>({});
+  // Spanish marks gender on words referring to people, so translations need to know
+  // the student's. Never rendered on its own — it only shapes grammatical agreement.
+  const [studentGender, setStudentGender] = useState<'male' | 'female' | 'non-binary' | undefined>(undefined);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -243,8 +247,31 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
     return spanishPattern.test(text) ? 'es' : 'en';
   };
 
+  // Load the student's gender so Spanish translations agree with it. Absent this
+  // the translator has no one to agree with and falls back to masculine forms.
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadStudentGender = async () => {
+      const student = await AuthService.getCurrentUserData(conversation.studentId);
+      if (cancelled) return;
+
+      const gender = student?.studentProfile?.gender;
+      // 'prefer-not-to-say' carries no grammatical information, so it stays unset
+      // and the translator is simply told nothing.
+      if (gender === 'male' || gender === 'female' || gender === 'non-binary') {
+        setStudentGender(gender);
+      }
+    };
+
+    void loadStudentGender();
+
+    return () => { cancelled = true; };
+  }, [conversation.studentId]);
+
   // Handle translation toggle
-  const handleTranslateToggle = async (messageId: string, text: string, currentLang: 'en' | 'es') => {
+  const handleTranslateToggle = async (message: ConversationMessage, currentLang: 'en' | 'es') => {
+    const messageId = message.id;
     // If already showing translation, just toggle it off
     if (showingTranslation[messageId]) {
       setShowingTranslation(prev => ({ ...prev, [messageId]: false }));
@@ -269,9 +296,14 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          text,
+          text: message.content,
           sourceLanguage: currentLang,
-          targetLanguage: targetLang
+          targetLanguage: targetLang,
+          // The student is the speaker in their own messages and the person being
+          // addressed in everyone else's. The counselor's gender is not recorded on
+          // their profile, so their side is left unspecified rather than guessed.
+          speakerGender: message.senderType === 'student' ? studentGender : undefined,
+          addresseeGender: message.senderType === 'student' ? undefined : studentGender
         })
       });
 
@@ -411,7 +443,7 @@ const ContinuousChat: React.FC<ContinuousChatProps> = ({ conversation, onBack, o
                 <div className={`mt-2 flex flex-wrap items-center gap-2 ${isCurrentUser ? 'justify-end' : 'justify-start'}`}>
                   {/* Translation toggle */}
                   <button
-                    onClick={() => handleTranslateToggle(message.id, message.content, messageLang)}
+                    onClick={() => handleTranslateToggle(message, messageLang)}
                     disabled={translating[message.id]}
                     className="inline-flex items-center space-x-1 px-2 py-1 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-50"
                     title={showingTranslation[message.id] ? "Show original" : `Translate to ${messageLang === 'en' ? 'Spanish' : 'English'}`}
