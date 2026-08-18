@@ -34,6 +34,21 @@ import { CulturalBackground } from '../../types/User';
 // Spanish; 'en' renders every Spanish turn in English; null hides translations.
 type TranslationTarget = 'es' | 'en';
 
+// Detect the language of a message (simple heuristic).
+// Compares how many markers of each language appear rather than tripping on a
+// single hit, so a mostly-English turn with a Spanish phrase in it still reads
+// as English and still gets translated. Pure, so it lives outside the component
+// and stays usable by anything in it regardless of declaration order.
+const detectLanguage = (text: string): 'en' | 'es' => {
+  const spanishMarkers = /[¿¡ñáéíóú]|\b(que|de|la|el|los|las|un|una|por|para|con|pero|porque|cuando|como|muy|más|mi|tu|su|yo|soy|eres|es|está|estoy|estás|sí|hola|gracias|siento|puedo|quiero|tengo|hacer|todo|nada|bien|familia|hermana|hermano)\b/gi;
+  const englishMarkers = /\b(the|and|is|are|was|were|to|of|in|it|that|this|you|i|my|me|for|with|but|not|have|has|feel|feeling|about|just|really|like|know|think|don't|i'm|it's|can't)\b/gi;
+
+  const spanishHits = (text.match(spanishMarkers) || []).length;
+  const englishHits = (text.match(englishMarkers) || []).length;
+
+  return spanishHits > englishHits ? 'es' : 'en';
+};
+
 interface CBTSimulatorContext {
   suggestedConcern: string;
   objective: string;
@@ -242,7 +257,9 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
         currentPatient,
         updatedMessages,
         counselorInput,
-        cbtContextString
+        cbtContextString,
+        // Answer in whichever language the counselor just used.
+        detectLanguage(counselorMessage.content)
       );
 
       const patientMessage: SimulationMessage = {
@@ -371,20 +388,6 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
       e.preventDefault();
       sendCounselorMessage();
     }
-  };
-
-  // Detect language of message (simple heuristic).
-  // Compares how many markers of each language appear rather than tripping on a
-  // single hit, so a mostly-English turn with a Spanish phrase in it still reads
-  // as English and still gets translated.
-  const detectLanguage = (text: string): 'en' | 'es' => {
-    const spanishMarkers = /[¿¡ñáéíóú]|\b(que|de|la|el|los|las|un|una|por|para|con|pero|porque|cuando|como|muy|más|mi|tu|su|yo|soy|eres|es|está|estoy|estás|sí|hola|gracias|siento|puedo|quiero|tengo|hacer|todo|nada|bien|familia|hermana|hermano)\b/gi;
-    const englishMarkers = /\b(the|and|is|are|was|were|to|of|in|it|that|this|you|i|my|me|for|with|but|not|have|has|feel|feeling|about|just|really|like|know|think|don't|i'm|it's|can't)\b/gi;
-
-    const spanishHits = (text.match(spanishMarkers) || []).length;
-    const englishHits = (text.match(englishMarkers) || []).length;
-
-    return spanishHits > englishHits ? 'es' : 'en';
   };
 
   // Fetch one message's translation into the target language.
