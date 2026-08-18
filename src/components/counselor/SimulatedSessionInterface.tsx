@@ -516,8 +516,11 @@ export const SimulatedSessionInterface: React.FC<SimulatedSessionInterfaceProps>
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 h-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      {/* Header. Sticky because this panel grows with the transcript instead of
+          scrolling internally — h-full resolves to auto since the dashboard gives
+          it no height — so an unpinned header scrolls out of reach in a long
+          session, taking the translation buttons with it. */}
+      <div className="sticky top-0 z-20 flex items-center justify-between p-4 bg-white border-b border-gray-200 rounded-t-lg">
         <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
